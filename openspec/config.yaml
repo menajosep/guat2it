@@ -1,0 +1,34 @@
+schema: spec-driven
+
+context: |
+  Guat2it is a personal meal-planning app that grows incrementally from a shopping-list manager
+  into a weekly menu planner. Initial users are two people on Android and iOS; a web build is
+  also supported. Current scope: shopping list only, stored locally on each device with no
+  synchronization, backend, or authentication.
+
+  Stack: TypeScript (strict), React 19, Ionic React 9, Vite, Capacitor 8, React Router 6 (via
+  @ionic/react-router), Dexie (IndexedDB), Vitest + React Testing Library, Playwright, ESLint,
+  Prettier, npm.
+
+  Architecture: modular monolith organized by feature under src/features/<feature>/ with
+  domain/ (pure rules), application/ (use cases and storage ports), infrastructure/ (Dexie
+  adapters), hooks/, components/ and pages/. domain/ and application/ must not import React,
+  Ionic, or Dexie. src/app/ is the composition root. See docs/architecture.md.
+
+  Specs describe observable behavior (what a user or developer can verify), not implementation
+  choices. Only specify features that exist or are being implemented in the current change.
+
+rules:
+  proposal:
+    - State the user-visible problem and why now; keep it to one or two pages.
+    - List every capability in the Capabilities section; each becomes a spec file.
+  specs:
+    - Write requirements with SHALL/MUST and at least one WHEN/THEN scenario each.
+    - Describe observable behavior; do not restate library or framework choices.
+    - Do not add speculative requirements for features that are not being built.
+  design:
+    - Include a design only for cross-cutting, architectural, data-model, or risky changes.
+    - Record alternatives considered and the reason for the chosen option.
+  tasks:
+    - Keep tasks small enough to finish in one session and verifiable.
+    - Include tests and the verification commands (npm run check, npm run build) as tasks.

@@ -1,0 +1,18 @@
+.page-column {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.add-item-form {
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.item-completed {
+  text-decoration: line-through;
+  opacity: 0.7;
+}

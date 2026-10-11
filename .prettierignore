@@ -1,0 +1,11 @@
+dist
+coverage
+playwright-report
+test-results
+android
+ios
+package-lock.json
+openspec/changes/archive
+.github/skills
+.github/prompts
+openspec/specs
