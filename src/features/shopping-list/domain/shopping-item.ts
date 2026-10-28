@@ -1,4 +1,12 @@
 import { fail, ok, type Result } from '../../../shared/types/result';
+import {
+  EMPTY_QUANTITY_DRAFT,
+  parseQuantity,
+  type Quantity,
+  type QuantityDraft,
+  type QuantityError,
+} from './quantity';
+import type { UnitId } from './units';
 
 export const MAX_ITEM_NAME_LENGTH = 100;
 
@@ -9,6 +17,14 @@ export interface ShoppingItem {
   readonly name: string;
   readonly completed: boolean;
   readonly createdAt: Date;
+  readonly amount?: number;
+  readonly unit?: UnitId;
+}
+
+/** Validation problems per field; a field is absent when it is valid. */
+export interface ItemErrors {
+  readonly name?: ItemNameError;
+  readonly quantity?: QuantityError;
 }
 
 /** Trims the name and checks it is non-empty and within the length limit. */
@@ -23,25 +39,60 @@ export function parseItemName(raw: string): Result<string, ItemNameError> {
   return ok(name);
 }
 
+function parseDetails(
+  rawName: string,
+  quantityDraft: QuantityDraft,
+): Result<{ name: string; quantity: Quantity }, ItemErrors> {
+  const name = parseItemName(rawName);
+  const quantity = parseQuantity(quantityDraft);
+  if (name.ok && quantity.ok) {
+    return ok({ name: name.value, quantity: quantity.value });
+  }
+  return fail({
+    ...(name.ok ? {} : { name: name.error }),
+    ...(quantity.ok ? {} : { quantity: quantity.error }),
+  });
+}
+
 export function createShoppingItem(
   rawName: string,
   id: string,
   createdAt: Date,
-): Result<ShoppingItem, ItemNameError> {
-  const name = parseItemName(rawName);
-  if (!name.ok) {
-    return name;
+  quantityDraft: QuantityDraft = EMPTY_QUANTITY_DRAFT,
+): Result<ShoppingItem, ItemErrors> {
+  const details = parseDetails(rawName, quantityDraft);
+  if (!details.ok) {
+    return details;
   }
-  return ok({ id, name: name.value, completed: false, createdAt });
+  return ok({
+    id,
+    name: details.value.name,
+    completed: false,
+    createdAt,
+    ...details.value.quantity,
+  });
 }
 
-/** Replaces the name after validating it; every other field is kept. */
-export function withName(item: ShoppingItem, rawName: string): Result<ShoppingItem, ItemNameError> {
-  const name = parseItemName(rawName);
-  if (!name.ok) {
-    return name;
+/**
+ * Replaces the name, amount and unit after validating them; id, completion state and creation
+ * time are kept. A cleared amount or unit is removed from the item.
+ */
+export function withDetails(
+  item: ShoppingItem,
+  rawName: string,
+  quantityDraft: QuantityDraft,
+): Result<ShoppingItem, ItemErrors> {
+  const details = parseDetails(rawName, quantityDraft);
+  if (!details.ok) {
+    return details;
   }
-  return ok({ ...item, name: name.value });
+  return ok({
+    id: item.id,
+    name: details.value.name,
+    completed: item.completed,
+    createdAt: item.createdAt,
+    ...details.value.quantity,
+  });
 }
 
 export function withCompleted(item: ShoppingItem, completed: boolean): ShoppingItem {

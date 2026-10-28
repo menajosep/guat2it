@@ -24,7 +24,7 @@ export function ShoppingListPage() {
     addItem,
     setCompleted,
     removeItem,
-    renameItem,
+    updateItem,
   } = useShoppingList();
 
   return (
@@ -61,7 +61,7 @@ export function ShoppingListPage() {
                 items={items}
                 onSetCompleted={(id, completed) => void setCompleted(id, completed)}
                 onRemove={(id) => void removeItem(id)}
-                onRename={renameItem}
+                onUpdate={updateItem}
               />
             </>
           )}

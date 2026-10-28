@@ -13,7 +13,7 @@ const uniqueDatabase = (prefix: string) => `${prefix}-${String(++counter)}`;
 async function renderApp(databaseName: string) {
   const service = createShoppingListService(databaseName);
   const view = render(<App shoppingListService={service} />);
-  await screen.findByText(/shopping list is empty|Bread|Milk|Storage unavailable/i);
+  await screen.findByText(/shopping list is empty|Bread|Milk|Flour|Storage unavailable/i);
   return { service, ...view };
 }
 
@@ -77,6 +77,36 @@ async function renameTo(user: User, currentName: string, newName: string) {
   await user.click(screen.getByText('Save'));
 }
 
+async function amountInput(scope: ParentNode = document): Promise<HTMLInputElement> {
+  return waitFor(() => {
+    const inputs = scope.querySelectorAll<HTMLInputElement>('ion-input input');
+    const input = inputs[1];
+    if (!input) throw new Error('the amount field has not rendered yet');
+    return input;
+  });
+}
+
+const unitSelect = (scope: ParentNode = document) =>
+  within(scope as HTMLElement).getByLabelText(/^Unit/);
+
+async function addWithQuantity(user: User, name: string, amount: string, unit: string) {
+  const input = await nameInput();
+  await user.clear(input);
+  await user.type(input, name);
+  if (amount) await user.type(await amountInput(), amount);
+  if (unit) await user.selectOptions(unitSelect(), unit);
+  await user.click(screen.getByText('Add item'));
+}
+
+/** The form has one alert region per field group, so look the message up by its text. */
+async function expectAlert(
+  text: string | RegExp,
+  scope: Pick<typeof screen, 'findByText'> = screen,
+) {
+  const message = await scope.findByText(text);
+  expect(message.closest('[role="alert"]')).not.toBeNull();
+}
+
 const statusMessage = () => within(screen.getByRole('status'));
 
 describe('shopping list', () => {
@@ -117,7 +147,7 @@ describe('shopping list', () => {
     await renderApp(uniqueDatabase('validation'));
 
     await addItem(user, '   ');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Enter an item name.');
+    await expectAlert('Enter an item name.');
     expect(screen.getByText(/shopping list is empty/i)).toBeInTheDocument();
 
     await addItem(user, 'Eggs');
@@ -130,7 +160,7 @@ describe('shopping list', () => {
     await renderApp(uniqueDatabase('long'));
 
     await addItem(user, 'a'.repeat(101));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/at most 100 characters/i);
+    await expectAlert(/at most 100 characters/i);
   });
 
   it('restores items after the app is loaded again', async () => {
@@ -217,7 +247,7 @@ describe('shopping list', () => {
 
     await renameTo(user, 'Milk', '   ');
     const form = await editForm();
-    expect(await within(form).findByRole('alert')).toHaveTextContent('Enter an item name.');
+    await expectAlert('Enter an item name.', within(form));
     expect(statusMessage().queryByText(/Renamed/)).not.toBeInTheDocument();
     expect((await service.list())[0]?.name).toBe('Milk');
 
@@ -294,7 +324,7 @@ describe('shopping list', () => {
     const { service } = await renderApp(uniqueDatabase('rename-failure'));
     await addItem(user, 'Milk');
     await screen.findByText('Milk');
-    vi.spyOn(service, 'renameItem').mockRejectedValueOnce(new PersistenceError('Could not save.'));
+    vi.spyOn(service, 'updateItem').mockRejectedValueOnce(new PersistenceError('Could not save.'));
 
     await renameTo(user, 'Milk', 'Oat milk');
     const message = await screen.findByText('Could not save.');
@@ -334,7 +364,7 @@ describe('shopping list', () => {
     await renderApp(uniqueDatabase('feedback-validation'));
 
     await addItem(user, '   ');
-    expect(await screen.findByRole('alert')).toHaveTextContent('Enter an item name.');
+    await expectAlert('Enter an item name.');
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
@@ -372,5 +402,222 @@ describe('shopping list', () => {
     await user.click(screen.getByText('Try again'));
     expect(await screen.findByText(/shopping list is empty/i)).toBeInTheDocument();
     expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  describe('amount and unit', () => {
+    it('adds an item with amount and unit and clears the fields', async () => {
+      const user = userEvent.setup();
+      await renderApp(uniqueDatabase('quantity-add'));
+
+      await addWithQuantity(user, 'Flour', '500', 'gram');
+
+      expect(await screen.findByText('500 grams')).toBeInTheDocument();
+      expect(screen.getByText('Flour')).toBeInTheDocument();
+      expect((await nameInput()).value).toBe('');
+      expect((await amountInput()).value).toBe('');
+      expect(unitSelect()).toHaveValue('');
+      expect(await statusMessage().findByText('Added Flour')).toBeInTheDocument();
+    });
+
+    it('adds an item without a quantity', async () => {
+      const user = userEvent.setup();
+      await renderApp(uniqueDatabase('quantity-none'));
+
+      await addItem(user, 'Milk');
+
+      expect(await screen.findByText('Milk')).toBeInTheDocument();
+      expect(document.querySelector('.item-quantity')).toBeNull();
+    });
+
+    it('accepts a decimal comma and pluralizes by amount', async () => {
+      const user = userEvent.setup();
+      await renderApp(uniqueDatabase('quantity-plural'));
+
+      await addWithQuantity(user, 'Salt', '0,5', 'teaspoon');
+      await screen.findByText('0.5 teaspoons');
+      await addWithQuantity(user, 'Rice', '1', 'cup');
+      await screen.findByText('1 cup');
+      await addWithQuantity(user, 'Oats', '2', 'cup');
+      expect(await screen.findByText('2 cups')).toBeInTheDocument();
+    });
+
+    it('announces an amount without a unit and adds nothing', async () => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-unit-required'));
+
+      await addWithQuantity(user, 'Flour', '2', '');
+
+      await expectAlert('Choose a unit for the amount.');
+      expect(await service.list()).toEqual([]);
+      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    });
+
+    it('announces a unit that needs an amount and adds nothing', async () => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-amount-required'));
+
+      await addWithQuantity(user, 'Flour', '', 'cup');
+
+      expect(await screen.findByText('Enter an amount for this unit.')).toBeInTheDocument();
+      expect(await service.list()).toEqual([]);
+    });
+
+    it.each(['0', '1.234', '10000', 'abc'])('rejects the invalid amount %j', async (amount) => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-invalid'));
+
+      await addWithQuantity(user, 'Flour', amount, 'cup');
+
+      expect(await screen.findByText(/positive amount up to 9999.99/)).toBeInTheDocument();
+      expect(await service.list()).toEqual([]);
+    });
+
+    it('disables and clears the amount for a unit that takes none', async () => {
+      const user = userEvent.setup();
+      await renderApp(uniqueDatabase('quantity-to-taste'));
+
+      await user.type(await nameInput(), 'Pepper');
+      await user.type(await amountInput(), '3');
+      await user.selectOptions(unitSelect(), 'to taste');
+      await waitFor(async () => {
+        expect(await amountInput()).toBeDisabled();
+      });
+      expect((await amountInput()).value).toBe('');
+
+      await user.click(screen.getByText('Add item'));
+      expect(await screen.findByText('to taste', { selector: 'ion-note' })).toBeInTheDocument();
+    });
+
+    it('still validates the name together with the quantity', async () => {
+      const user = userEvent.setup();
+      await renderApp(uniqueDatabase('quantity-name'));
+
+      await addWithQuantity(user, '   ', '2', 'cup');
+
+      expect(await screen.findByText('Enter an item name.')).toBeInTheDocument();
+    });
+
+    it('keeps the quantity when completing and after a reload', async () => {
+      const user = userEvent.setup();
+      const database = uniqueDatabase('quantity-persist');
+      await renderApp(database);
+      await addWithQuantity(user, 'Flour', '500', 'gram');
+      await screen.findByText('500 grams');
+
+      const checkbox = within(await screen.findByLabelText('Shopping items')).getByRole(
+        'checkbox',
+        { hidden: true },
+      );
+      await user.click(checkbox);
+      await waitFor(() => {
+        expect(screen.getByText('Flour').closest('ion-checkbox')).toHaveClass('item-completed');
+      });
+      expect(screen.getByText('500 grams')).toBeInTheDocument();
+
+      cleanup();
+      await renderApp(database);
+      expect(await screen.findByText('500 grams')).toBeInTheDocument();
+    });
+
+    it('lists items stored without a quantity and lets the user add one', async () => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-legacy'));
+      await addItem(user, 'Milk');
+      await screen.findByText('Milk');
+
+      await startEdit(user, 'Milk');
+      const form = await editForm();
+      await user.type(await amountInput(form), '1');
+      await user.selectOptions(unitSelect(form), 'liter');
+      await user.click(screen.getByText('Save'));
+
+      expect(await screen.findByText('1 liter')).toBeInTheDocument();
+      expect((await service.list())[0]).toMatchObject({ amount: 1, unit: 'liter' });
+    });
+
+    it('prefills the editor, saves a new quantity and reports "Updated"', async () => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-edit'));
+      await addWithQuantity(user, 'Flour', '500', 'gram');
+      await screen.findByText('500 grams');
+
+      await startEdit(user, 'Flour');
+      const form = await editForm();
+      expect((await amountInput(form)).value).toBe('500');
+      expect(unitSelect(form)).toHaveValue('gram');
+
+      const amount = await amountInput(form);
+      await user.clear(amount);
+      await user.type(amount, '2');
+      await user.selectOptions(unitSelect(form), 'kilogram');
+      await user.click(screen.getByText('Save'));
+
+      expect(await screen.findByText('2 kilograms')).toBeInTheDocument();
+      expect(document.querySelector('.edit-item-form')).toBeNull();
+      expect(await statusMessage().findByText('Updated Flour')).toBeInTheDocument();
+      expect((await service.list())[0]).toMatchObject({
+        name: 'Flour',
+        amount: 2,
+        unit: 'kilogram',
+      });
+    });
+
+    it('clears the quantity from the editor', async () => {
+      const user = userEvent.setup();
+      await renderApp(uniqueDatabase('quantity-clear'));
+      await addWithQuantity(user, 'Flour', '500', 'gram');
+      await screen.findByText('500 grams');
+
+      await startEdit(user, 'Flour');
+      const form = await editForm();
+      await user.clear(await amountInput(form));
+      await user.selectOptions(unitSelect(form), '');
+      await user.click(screen.getByText('Save'));
+
+      await waitFor(() => {
+        expect(screen.queryByText('500 grams')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('Flour')).toBeInTheDocument();
+    });
+
+    it('keeps the editor open and the item unchanged for an invalid quantity', async () => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-edit-invalid'));
+      await addWithQuantity(user, 'Flour', '500', 'gram');
+      await screen.findByText('500 grams');
+
+      await startEdit(user, 'Flour');
+      const form = await editForm();
+      await user.selectOptions(unitSelect(form), '');
+      await user.click(screen.getByText('Save'));
+
+      expect(await within(form).findByText('Choose a unit for the amount.')).toBeInTheDocument();
+      expect(document.querySelector('.edit-item-form')).not.toBeNull();
+      expect((await service.list())[0]).toMatchObject({ amount: 500, unit: 'gram' });
+      expect(screen.getByRole('status')).not.toHaveTextContent(/Updated|Renamed/);
+    });
+
+    it('discards quantity changes on cancel or Escape', async () => {
+      const user = userEvent.setup();
+      const { service } = await renderApp(uniqueDatabase('quantity-edit-cancel'));
+      await addWithQuantity(user, 'Flour', '500', 'gram');
+      await screen.findByText('500 grams');
+
+      await startEdit(user, 'Flour');
+      let form = await editForm();
+      await user.selectOptions(unitSelect(form), 'kilogram');
+      await user.click(screen.getByText('Cancel'));
+      expect(document.querySelector('.edit-item-form')).toBeNull();
+
+      await startEdit(user, 'Flour');
+      form = await editForm();
+      await user.selectOptions(unitSelect(form), 'cup');
+      await user.type(await amountInput(form), '{Escape}');
+      expect(document.querySelector('.edit-item-form')).toBeNull();
+
+      expect(screen.getByText('500 grams')).toBeInTheDocument();
+      expect((await service.list())[0]).toMatchObject({ amount: 500, unit: 'gram' });
+      expect(screen.getByRole('status')).not.toHaveTextContent(/Updated|Renamed/);
+    });
   });
 });

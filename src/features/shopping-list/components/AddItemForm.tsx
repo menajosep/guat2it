@@ -1,26 +1,30 @@
 import { IonButton, IonInput, IonNote } from '@ionic/react';
 import { useState } from 'react';
-import type { ItemNameError } from '../domain/shopping-item';
+import { EMPTY_QUANTITY_DRAFT, type QuantityDraft } from '../domain/quantity';
+import type { ItemErrors } from '../domain/shopping-item';
 import type { AddOutcome } from '../hooks/use-shopping-list';
 import { ITEM_NAME_MESSAGES } from '../messages';
+import { QuantityFields } from './QuantityFields';
 
 interface AddItemFormProps {
-  onAdd: (name: string) => Promise<AddOutcome>;
+  onAdd: (name: string, quantity: QuantityDraft) => Promise<AddOutcome>;
 }
 
 export function AddItemForm({ onAdd }: AddItemFormProps) {
   const [name, setName] = useState('');
-  const [error, setError] = useState<ItemNameError | null>(null);
+  const [quantity, setQuantity] = useState<QuantityDraft>(EMPTY_QUANTITY_DRAFT);
+  const [errors, setErrors] = useState<ItemErrors>({});
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setSubmitting(true);
-    const outcome = await onAdd(name);
+    const outcome = await onAdd(name, quantity);
     setSubmitting(false);
-    setError(outcome.status === 'invalid' ? outcome.error : null);
+    setErrors(outcome.status === 'invalid' ? outcome.errors : {});
     if (outcome.status === 'added') {
       setName('');
+      setQuantity(EMPTY_QUANTITY_DRAFT);
     }
   }
 
@@ -33,14 +37,20 @@ export function AddItemForm({ onAdd }: AddItemFormProps) {
         value={name}
         enterkeyhint="done"
         aria-describedby="add-item-error"
-        aria-invalid={error !== null}
+        aria-invalid={errors.name !== undefined}
         onIonInput={(event) => {
           setName(event.detail.value ?? '');
         }}
       />
       <div id="add-item-error" role="alert">
-        {error && <IonNote color="danger">{ITEM_NAME_MESSAGES[error]}</IonNote>}
+        {errors.name && <IonNote color="danger">{ITEM_NAME_MESSAGES[errors.name]}</IonNote>}
       </div>
+      <QuantityFields
+        idPrefix="add-item"
+        value={quantity}
+        error={errors.quantity ?? null}
+        onChange={setQuantity}
+      />
       <IonButton type="submit" expand="block" disabled={submitting}>
         Add item
       </IonButton>

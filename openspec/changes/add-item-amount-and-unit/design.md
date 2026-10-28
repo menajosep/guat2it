@@ -92,7 +92,7 @@ Alternative: keep every Spanish term as its own unit with the English meaning as
 
 ### UI
 
-`AddItemForm` and `EditItemForm` get an amount input (`inputmode="decimal"`, label "Amount") and a unit select (label "Unit", first option "No unit"). Choosing a unit that takes no amount disables and clears the amount field. Quantity errors use `role="alert"` next to the fields, and the editor/form stays open on error, like name errors do today.
+`AddItemForm` and `EditItemForm` get an amount input (`inputmode="decimal"`, label "Amount") and a unit select (label "Unit", first option "No unit"), implemented as a native `<select>` (Ionic's select opens an overlay that is harder to test and to use with assistive technology). In the edit row the labels get a " for <name>" suffix so they stay distinct from the add form. Choosing a unit that takes no amount disables and clears the amount field. Quantity errors use their own `role="alert"` region next to the fields (so forms now contain two alert regions), and the editor/form stays open on error, like name errors do today.
 
 ## Risks / Trade-offs
 
