@@ -27,5 +27,5 @@
 ## 5. Docs and verification
 
 - [x] 5.1 Update `README.md` and `docs/architecture.md` (language feature, catalogs, `localStorage` preference, how to add a language or text)
-- [ ] 5.2 Ask the owner to review the Spanish and Catalan translations
+- [x] 5.2 Ask the owner to review the Spanish and Catalan translations
 - [x] 5.3 Run `npm run check`, `npm run build` and `npm run test:e2e`; fix failures without weakening tests
