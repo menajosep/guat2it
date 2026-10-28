@@ -14,6 +14,11 @@ The shopping-list interface SHALL use colors inspired by the app icon: green as 
 - **WHEN** the user inspects a remove control or a persistence error
 - **THEN** the action or failure is identifiable by its accessible name or message as well as its visual styling
 
+#### Scenario: Quantity fields align
+
+- **WHEN** the add or edit form displays the amount and unit controls side by side
+- **THEN** their control areas align along their top and bottom edges and both controls retain their accessible labels
+
 ### Requirement: System-responsive appearance
 
 The interface SHALL follow the system's light or dark appearance without requiring a setting. Both appearances MUST use the icon-inspired palette while preserving the existing shopping-list interactions and language selection.

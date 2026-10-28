@@ -13,7 +13,7 @@ The app icon uses deep and bright greens, a lime accent and light neutral areas,
 **Non-Goals:**
 
 - Adding a manual theme selector, changing the icon or generating native assets.
-- Changing layout, copy, language behavior, persistence, or shopping-list business rules.
+- Changing overall layout, copy, language behavior, persistence, or shopping-list business rules.
 
 ## Decisions
 
@@ -21,6 +21,7 @@ The app icon uses deep and bright greens, a lime accent and light neutral areas,
 2. Keep red for destructive and error states and distinguish success from errors using existing text and icons, not color alone. Lime is an accent, not small text on a light surface. Alternatives: using green for every semantic role, which obscures destructive actions.
 3. Use light and dark neutral backgrounds and contrast-tested foregrounds. Test normal text at a minimum 4.5:1 and essential non-text control boundaries and focus indicators against adjacent colors at 3:1. Exclude inactive disabled controls from those measurements. Browser tests should exercise actual rendered components and their relevant shadow DOM styles in both system schemes, not just CSS variable declarations. Supplement with a visual inspection of the screen and confirmation dialog at mobile and desktop widths.
 4. Preserve system appearance detection and do not add a preference. An always-light theme would regress the existing system-dark behavior; a user-selectable theme is beyond the issue.
+5. Align the existing amount and unit controls at their bottom edge in their shared grid. This keeps the native unit label above its selector and the Ionic floating amount label while aligning the control areas, without changing their accessible names or replacing the native selector. Ionic's iOS mode does not draw the outlined input style, so alignment there is measured from the input's control area.
 
 ## Risks / Trade-offs
 
