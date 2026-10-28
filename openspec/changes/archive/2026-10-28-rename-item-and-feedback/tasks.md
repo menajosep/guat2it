@@ -29,4 +29,4 @@
 
 - [x] 6.1 Update `README.md`: remove the "Items cannot be edited" limitation, replace the "Next recommended step" note, and mention rename and feedback in the feature list; update docs touched by the change
 - [x] 6.2 Run `npm run check`, `npm run build` and `npm run test:e2e`; report any failed or skipped checks
-- [ ] 6.3 Verify with `openspec validate rename-item-and-feedback`, then archive with `openspec archive rename-item-and-feedback`
+- [x] 6.3 Verify with `openspec validate rename-item-and-feedback`, then archive with `openspec archive rename-item-and-feedback`
