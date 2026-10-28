@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { amountToText, type QuantityDraft } from '../domain/quantity';
 import type { ItemErrors, ShoppingItem } from '../domain/shopping-item';
 import type { UpdateOutcome } from '../hooks/use-shopping-list';
-import { ITEM_NAME_MESSAGES } from '../messages';
+import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 import { QuantityFields } from './QuantityFields';
 
 interface EditItemFormProps {
@@ -13,6 +13,7 @@ interface EditItemFormProps {
 }
 
 export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
+  const messages = useShoppingListMessages();
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState<QuantityDraft>({
     amount: amountToText(item),
@@ -65,7 +66,7 @@ export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
       className="edit-item-form"
     >
       <IonInput
-        label={`New name for ${item.name}`}
+        label={messages.newNameFor(item.name)}
         labelPlacement="floating"
         fill="outline"
         value={name}
@@ -77,21 +78,21 @@ export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
         }}
       />
       <div id={errorId} role="alert">
-        {errors.name && <IonNote color="danger">{ITEM_NAME_MESSAGES[errors.name]}</IonNote>}
+        {errors.name && <IonNote color="danger">{messages.itemNameErrors[errors.name]}</IonNote>}
       </div>
       <QuantityFields
         idPrefix={`edit-item-${item.id}`}
-        labelSuffix={` for ${item.name}`}
+        itemName={item.name}
         value={quantity}
         error={errors.quantity ?? null}
         onChange={setQuantity}
       />
       <div className="edit-item-actions">
         <IonButton type="submit" size="small" disabled={saving}>
-          Save
+          {messages.save}
         </IonButton>
         <IonButton type="button" size="small" fill="outline" onClick={onClose}>
-          Cancel
+          {messages.cancel}
         </IonButton>
       </div>
     </form>

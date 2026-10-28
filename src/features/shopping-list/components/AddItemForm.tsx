@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { EMPTY_QUANTITY_DRAFT, type QuantityDraft } from '../domain/quantity';
 import type { ItemErrors } from '../domain/shopping-item';
 import type { AddOutcome } from '../hooks/use-shopping-list';
-import { ITEM_NAME_MESSAGES } from '../messages';
+import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 import { QuantityFields } from './QuantityFields';
 
 interface AddItemFormProps {
@@ -11,6 +11,7 @@ interface AddItemFormProps {
 }
 
 export function AddItemForm({ onAdd }: AddItemFormProps) {
+  const messages = useShoppingListMessages();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState<QuantityDraft>(EMPTY_QUANTITY_DRAFT);
   const [errors, setErrors] = useState<ItemErrors>({});
@@ -31,7 +32,7 @@ export function AddItemForm({ onAdd }: AddItemFormProps) {
   return (
     <form onSubmit={(event) => void handleSubmit(event)} noValidate className="add-item-form">
       <IonInput
-        label="Item name"
+        label={messages.itemName}
         labelPlacement="floating"
         fill="outline"
         value={name}
@@ -43,7 +44,7 @@ export function AddItemForm({ onAdd }: AddItemFormProps) {
         }}
       />
       <div id="add-item-error" role="alert">
-        {errors.name && <IonNote color="danger">{ITEM_NAME_MESSAGES[errors.name]}</IonNote>}
+        {errors.name && <IonNote color="danger">{messages.itemNameErrors[errors.name]}</IonNote>}
       </div>
       <QuantityFields
         idPrefix="add-item"
@@ -52,7 +53,7 @@ export function AddItemForm({ onAdd }: AddItemFormProps) {
         onChange={setQuantity}
       />
       <IonButton type="submit" expand="block" disabled={submitting}>
-        Add item
+        {messages.addItem}
       </IonButton>
     </form>
   );

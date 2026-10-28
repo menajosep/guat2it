@@ -2,7 +2,7 @@ import { setupIonicReact } from '@ionic/react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../app/App';
-import { createShoppingListService } from '../app/create-services';
+import { createLanguageService, createShoppingListService } from '../app/create-services';
 import { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 import { DexieShoppingItemStore } from '../features/shopping-list/infrastructure/dexie-shopping-item-store';
 import { AppDatabase } from '../infrastructure/persistence/app-database';
@@ -15,7 +15,9 @@ const uniqueDatabase = (prefix: string) => `${prefix}-${String(++counter)}`;
 
 async function renderApp(databaseName: string) {
   const service = createShoppingListService(databaseName);
-  const view = render(<App shoppingListService={service} />);
+  const view = render(
+    <App shoppingListService={service} languageService={createLanguageService()} />,
+  );
   await screen.findByText(/shopping list is empty|Bread|Milk|Flour|Storage unavailable/i);
   return { service, ...view };
 }
@@ -133,7 +135,9 @@ async function renderSeededApp(
 ) {
   await seedItems(databaseName, items);
   const service = createShoppingListService(databaseName);
-  const view = render(<App shoppingListService={service} />);
+  const view = render(
+    <App shoppingListService={service} languageService={createLanguageService()} />,
+  );
   await screen.findByText(items[0]?.name ?? '');
   return { service, ...view };
 }
@@ -607,7 +611,7 @@ describe('shopping list', () => {
     const user = userEvent.setup();
     const service = createShoppingListService(uniqueDatabase('error'));
     const list = vi.spyOn(service, 'list').mockRejectedValueOnce(new Error('Storage unavailable'));
-    render(<App shoppingListService={service} />);
+    render(<App shoppingListService={service} languageService={createLanguageService()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Storage unavailable');
 

@@ -1,12 +1,12 @@
 import { IonInput, IonNote } from '@ionic/react';
 import type { QuantityDraft, QuantityError } from '../domain/quantity';
 import { isUnitId, UNIT_IDS, UNITS } from '../domain/units';
-import { QUANTITY_MESSAGES } from '../messages';
+import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 
 interface QuantityFieldsProps {
   idPrefix: string;
-  /** Appended to the field labels so fields in different forms have distinct accessible names. */
-  labelSuffix?: string;
+  /** Added to the field labels so fields in different forms have distinct accessible names. */
+  itemName?: string;
   value: QuantityDraft;
   error: QuantityError | null;
   onChange: (value: QuantityDraft) => void;
@@ -14,11 +14,12 @@ interface QuantityFieldsProps {
 
 export function QuantityFields({
   idPrefix,
-  labelSuffix = '',
+  itemName,
   value,
   error,
   onChange,
 }: QuantityFieldsProps) {
+  const messages = useShoppingListMessages();
   const amountDisabled = value.unit !== undefined && !UNITS[value.unit].takesAmount;
   const errorId = `${idPrefix}-quantity-error`;
   const unitId = `${idPrefix}-unit`;
@@ -27,7 +28,7 @@ export function QuantityFields({
     <>
       <div className="quantity-fields">
         <IonInput
-          label={`Amount${labelSuffix}`}
+          label={messages.amount(itemName)}
           labelPlacement="floating"
           fill="outline"
           inputmode="decimal"
@@ -41,7 +42,7 @@ export function QuantityFields({
           }}
         />
         <div className="unit-field">
-          <label htmlFor={unitId}>{`Unit${labelSuffix}`}</label>
+          <label htmlFor={unitId}>{messages.unit(itemName)}</label>
           <select
             id={unitId}
             value={value.unit ?? ''}
@@ -54,17 +55,17 @@ export function QuantityFields({
               onChange({ amount: clearAmount ? '' : value.amount, unit });
             }}
           >
-            <option value="">No unit</option>
+            <option value="">{messages.noUnit}</option>
             {UNIT_IDS.map((id) => (
               <option key={id} value={id}>
-                {UNITS[id].singular}
+                {messages.units[id].singular}
               </option>
             ))}
           </select>
         </div>
       </div>
       <div id={errorId} role="alert">
-        {error && <IonNote color="danger">{QUANTITY_MESSAGES[error]}</IonNote>}
+        {error && <IonNote color="danger">{messages.quantityErrors[error]}</IonNote>}
       </div>
     </>
   );

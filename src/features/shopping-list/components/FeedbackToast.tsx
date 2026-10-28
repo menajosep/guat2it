@@ -2,6 +2,7 @@ import { IonButton, IonIcon } from '@ionic/react';
 import { closeOutline } from 'ionicons/icons';
 import { useEffect } from 'react';
 import type { Feedback } from '../hooks/use-shopping-list';
+import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 
 export const SUCCESS_FEEDBACK_DURATION_MS = 4000;
 
@@ -20,6 +21,7 @@ export function FeedbackToast({
   onDismiss,
   successDurationMs = SUCCESS_FEEDBACK_DURATION_MS,
 }: FeedbackToastProps) {
+  const messages = useShoppingListMessages();
   const feedbackId = feedback?.id;
   const isSuccess = feedback?.kind === 'success';
 
@@ -41,7 +43,12 @@ export function FeedbackToast({
       {feedback?.kind === 'error' && (
         <div role="alert" className="feedback-toast feedback-toast-error">
           <span>{feedback.message}</span>
-          <IonButton fill="clear" size="small" aria-label="Dismiss message" onClick={onDismiss}>
+          <IonButton
+            fill="clear"
+            size="small"
+            aria-label={messages.dismissMessage}
+            onClick={onDismiss}
+          >
             <IonIcon slot="icon-only" icon={closeOutline} aria-hidden="true" />
           </IonButton>
         </div>

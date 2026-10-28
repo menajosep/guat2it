@@ -8,12 +8,15 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
+import { LanguageNotice } from '../../language/components/LanguageNotice';
+import { LanguageSelect } from '../../language/components/LanguageSelect';
 import { AddItemForm } from '../components/AddItemForm';
 import { ClearCompletedButton } from '../components/ClearCompletedButton';
 import { FeedbackToast } from '../components/FeedbackToast';
 import { ShoppingItemList } from '../components/ShoppingItemList';
 import { completedItems } from '../domain/shopping-item';
 import { useShoppingList } from '../hooks/use-shopping-list';
+import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 
 export function ShoppingListPage() {
   const {
@@ -29,17 +32,22 @@ export function ShoppingListPage() {
     updateItem,
     clearCompleted,
   } = useShoppingList();
+  const messages = useShoppingListMessages();
   const completedCount = completedItems(items).length;
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Shopping list</IonTitle>
+          <IonTitle>{messages.pageTitle}</IonTitle>
+          <div slot="end" className="language-control">
+            <LanguageSelect />
+          </div>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
         <div className="page-column">
+          <LanguageNotice />
           {errorMessage && (
             <div role="alert">
               <IonText color="danger">
@@ -47,7 +55,7 @@ export function ShoppingListPage() {
               </IonText>
             </div>
           )}
-          {status === 'loading' && <IonSpinner name="dots" aria-label="Loading shopping list" />}
+          {status === 'loading' && <IonSpinner name="dots" aria-label={messages.loadingList} />}
           {status === 'error' && (
             <IonButton
               fill="outline"
@@ -55,7 +63,7 @@ export function ShoppingListPage() {
                 void reload();
               }}
             >
-              Try again
+              {messages.tryAgain}
             </IonButton>
           )}
           {status === 'ready' && (

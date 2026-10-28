@@ -1,9 +1,11 @@
 import { IonButton, IonCheckbox, IonIcon, IonItem, IonList, IonNote } from '@ionic/react';
 import { createOutline, trashOutline } from 'ionicons/icons';
 import { useEffect, useRef, useState } from 'react';
-import { formatQuantity, type QuantityDraft } from '../domain/quantity';
+import type { QuantityDraft } from '../domain/quantity';
 import type { ShoppingItem } from '../domain/shopping-item';
 import type { UpdateOutcome } from '../hooks/use-shopping-list';
+import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
+import { formatQuantity } from '../messages/format-quantity';
 import { EditItemForm } from './EditItemForm';
 
 interface ShoppingItemListProps {
@@ -19,6 +21,7 @@ export function ShoppingItemList({
   onRemove,
   onUpdate,
 }: ShoppingItemListProps) {
+  const messages = useShoppingListMessages();
   // Only one row is edited at a time; starting another edit discards the previous draft.
   const [editingId, setEditingId] = useState<string | null>(null);
   const listRef = useRef<HTMLIonListElement>(null);
@@ -37,7 +40,7 @@ export function ShoppingItemList({
   if (items.length === 0) {
     return (
       <p className="empty-state">
-        <IonNote>Your shopping list is empty. Add your first item above.</IonNote>
+        <IonNote>{messages.emptyList}</IonNote>
       </p>
     );
   }
@@ -48,7 +51,7 @@ export function ShoppingItemList({
   }
 
   return (
-    <IonList ref={listRef} aria-label="Shopping items">
+    <IonList ref={listRef} aria-label={messages.listLabel}>
       {items.map((item) =>
         item.id === editingId ? (
           <IonItem key={item.id}>
@@ -70,15 +73,15 @@ export function ShoppingItemList({
               }}
             >
               {item.name}
-              {formatQuantity(item) && (
-                <IonNote className="item-quantity">{formatQuantity(item)}</IonNote>
+              {formatQuantity(item, messages.units) && (
+                <IonNote className="item-quantity">{formatQuantity(item, messages.units)}</IonNote>
               )}
             </IonCheckbox>
             <IonButton
               slot="end"
               fill="clear"
               data-edit-id={item.id}
-              aria-label={`Edit ${item.name}`}
+              aria-label={messages.editItem(item.name)}
               onClick={() => {
                 setEditingId(item.id);
               }}
@@ -89,7 +92,7 @@ export function ShoppingItemList({
               slot="end"
               fill="clear"
               color="danger"
-              aria-label={`Remove ${item.name}`}
+              aria-label={messages.removeItem(item.name)}
               onClick={() => {
                 onRemove(item.id);
               }}

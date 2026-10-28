@@ -43,7 +43,11 @@ _Alternative: Dexie `settings` table._ Rejected: needs schema version, async loa
 
 ### 5. Message catalogs are split per feature
 
-`src/features/language/messages/` holds the shared, cross-feature text and the `Messages` aggregate; shopping-list texts live in `src/features/shopping-list/messages/{en,es,ca}.ts`, each satisfying a `ShoppingListMessages` type defined by the feature. The app assembles the per-language bundle in `src/app/` so features do not import each other. Components call `useMessages()` / a feature hook instead of importing constants.
+Each feature owns its catalogs: `src/features/language/messages/{en,es,ca}.ts` for the language control, and `src/features/shopping-list/messages/{en,es,ca}.ts` for the shopping list, each satisfying a type defined by the feature. The `shopping-list` feature reads the active language through the `language` feature's `useLanguage()` hook (one-way dependency; `language` never imports `shopping-list`) and picks its own catalog in `useShoppingListMessages()`. Components call that hook instead of importing text constants. The language context has a default value of English, so components can render without a provider (for example in isolated component tests).
+
+### 5b. Storage failures are translated in the UI
+
+`PersistenceError` carries an optional machine-readable `action` (`load-list`, `read-item`, `save-item`, `remove-item`, `remove-items`). The Dexie adapter keeps an English technical `message` for logs, and the UI shows the catalog text for the action in the selected language. Errors without an `action` keep showing their own message, and unknown errors show the translated fallback message.
 
 ### 6. Selector UX
 

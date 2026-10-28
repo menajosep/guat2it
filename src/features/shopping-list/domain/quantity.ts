@@ -59,19 +59,6 @@ export function parseQuantity(draft: QuantityDraft): Result<Quantity, QuantityEr
   return amount.ok ? ok({ amount: amount.value, unit }) : amount;
 }
 
-/** Text such as "500 grams" or "to taste", or `undefined` when there is no quantity. */
-export function formatQuantity(quantity: Quantity): string | undefined {
-  const { amount, unit } = quantity;
-  if (unit === undefined) {
-    return undefined;
-  }
-  const definition = UNITS[unit];
-  if (amount === undefined) {
-    return definition.singular;
-  }
-  return `${String(amount)} ${amount === 1 ? definition.singular : definition.plural}`;
-}
-
 /** Text to prefill the amount field with. */
 export function amountToText(quantity: Quantity): string {
   return quantity.amount === undefined ? '' : String(quantity.amount);

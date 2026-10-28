@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PersistenceError } from '../../../shared/errors/persistence-error';
 import { EMPTY_QUANTITY_DRAFT, type QuantityDraft } from '../domain/quantity';
 import type { ItemErrors, ShoppingItem } from '../domain/shopping-item';
-import { FALLBACK_ERROR_MESSAGE, feedbackMessages } from '../messages';
+import type { ShoppingListMessages } from '../messages';
 import { useShoppingListService } from './shopping-list-service-context';
+import { useShoppingListMessages } from './use-shopping-list-messages';
 
 export type LoadStatus = 'loading' | 'ready' | 'error';
 
@@ -41,36 +43,66 @@ export interface ShoppingListState {
 
 type MutationResult<T> = { failed: true } | { failed: false; value: T };
 
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : FALLBACK_ERROR_MESSAGE;
+type MessageText = (messages: ShoppingListMessages) => string;
+
+/** Words an error in the user's language; storage failures are translated, others keep their text. */
+function describe(error: unknown): MessageText {
+  return (messages) => {
+    if (error instanceof PersistenceError && error.action !== undefined) {
+      return messages.storageFailures[error.action];
+    }
+    return error instanceof Error ? error.message : messages.fallbackError;
+  };
+}
+
+/**
+ * A feedback message kept as a text builder rather than a string, so that it can be shown in
+ * another language if the user switches language while it is visible.
+ */
+interface FeedbackSource {
+  id: number;
+  kind: Feedback['kind'];
+  text: MessageText;
 }
 
 export function useShoppingList(): ShoppingListState {
   const service = useShoppingListService();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const messages = useShoppingListMessages();
+  const [loadFailure, setLoadFailure] = useState<MessageText | null>(null);
+  const [feedbackSource, setFeedbackSource] = useState<FeedbackSource | null>(null);
   const feedbackCount = useRef(0);
 
-  const announce = useCallback((kind: Feedback['kind'], message: string) => {
+  const errorMessage = loadFailure ? loadFailure(messages) : null;
+  const feedback = useMemo<Feedback | null>(
+    () =>
+      feedbackSource && {
+        id: feedbackSource.id,
+        kind: feedbackSource.kind,
+        message: feedbackSource.text(messages),
+      },
+    [feedbackSource, messages],
+  );
+
+  const announce = useCallback((kind: Feedback['kind'], text: MessageText) => {
     feedbackCount.current += 1;
-    setFeedback({ id: feedbackCount.current, kind, message });
+    setFeedbackSource({ id: feedbackCount.current, kind, text });
   }, []);
 
   const dismissFeedback = useCallback(() => {
-    setFeedback(null);
+    setFeedbackSource(null);
   }, []);
 
   const showLoaded = useCallback((loaded: ShoppingItem[]) => {
     setItems(loaded);
     setStatus('ready');
-    setErrorMessage(null);
+    setLoadFailure(null);
   }, []);
 
   const showLoadFailure = useCallback((error: unknown) => {
     setStatus('error');
-    setErrorMessage(describe(error));
+    setLoadFailure(() => describe(error));
   }, []);
 
   const reload = useCallback(async () => {
@@ -118,7 +150,8 @@ export function useShoppingList(): ShoppingListState {
       const result = await mutate(() => service.addItem(name, quantity));
       if (result.failed) return { status: 'failed' };
       if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
-      announce('success', feedbackMessages.added(result.value.value.name));
+      const { name: addedName } = result.value.value;
+      announce('success', (m) => m.feedback.added(addedName));
       return { status: 'added' };
     },
     [mutate, service, announce],
@@ -129,9 +162,8 @@ export function useShoppingList(): ShoppingListState {
       const result = await mutate(() => service.setCompleted(id, completed));
       if (result.failed || !result.value) return;
       const { name } = result.value;
-      announce(
-        'success',
-        completed ? feedbackMessages.completed(name) : feedbackMessages.reactivated(name),
+      announce('success', (m) =>
+        completed ? m.feedback.completed(name) : m.feedback.reactivated(name),
       );
     },
     [mutate, service, announce],
@@ -141,7 +173,8 @@ export function useShoppingList(): ShoppingListState {
     async (id: string) => {
       const result = await mutate(() => service.removeItem(id));
       if (result.failed || !result.value) return;
-      announce('success', feedbackMessages.removed(result.value.name));
+      const { name } = result.value;
+      announce('success', (m) => m.feedback.removed(name));
     },
     [mutate, service, announce],
   );
@@ -153,11 +186,11 @@ export function useShoppingList(): ShoppingListState {
       if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
       const change = result.value.value;
       if (!change) return { status: 'unchanged' };
-      announce(
-        'success',
-        change.previous.name === change.item.name
-          ? feedbackMessages.updated(change.item.name)
-          : feedbackMessages.renamed(change.previous.name, change.item.name),
+      const { previous, item } = change;
+      announce('success', (m) =>
+        previous.name === item.name
+          ? m.feedback.updated(item.name)
+          : m.feedback.renamed(previous.name, item.name),
       );
       return { status: 'updated' };
     },
@@ -167,7 +200,8 @@ export function useShoppingList(): ShoppingListState {
   const clearCompleted = useCallback(async () => {
     const result = await mutate(() => service.clearCompleted());
     if (result.failed || result.value.length === 0) return;
-    announce('success', feedbackMessages.cleared(result.value.length));
+    const cleared = result.value.length;
+    announce('success', (m) => m.feedback.cleared(cleared));
   }, [mutate, service, announce]);
 
   return {

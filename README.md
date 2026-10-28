@@ -4,7 +4,7 @@ A personal meal-planning app that will grow, one OpenSpec change at a time, from
 
 ## Current scope
 
-Implemented: a **local shopping list** — add items with an optional amount and unit, mark them completed/active, edit them inline (name, amount, unit), remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages for every operation, and empty/loading/error states.
+Implemented: a **local shopping list** — add items with an optional amount and unit, mark them completed/active, edit them inline (name, amount, unit), remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages for every operation, and empty/loading/error states. The interface is available in **English, Spanish and Catalan**: pick the language in the toolbar; the choice is remembered on the device, and the first launch follows the device language when supported.
 
 Not implemented (yet): categories, recipes, meal planning, shopping lists generated from meals, sync, accounts.
 
@@ -79,11 +79,13 @@ Feature-oriented modular monolith; domain rules and application services do not 
 ```
 src/
   app/                      App shell, routes, composition root (create-services.ts)
+  features/language/        supported languages, preference service, selector (messages/ holds its texts)
   features/shopping-list/
     domain/                 pure rules and types
     application/            ShoppingListService + ShoppingItemStore port
     infrastructure/         Dexie implementation of the port
     hooks/ components/ pages/   React + Ionic UI
+    messages/               texts per language (en, es, ca)
   infrastructure/persistence/   Dexie database and schema versions
   shared/                   Result, PersistenceError, generateId
   test/                     test setup and UI-flow tests
@@ -95,7 +97,7 @@ docs/                       architecture and development guides
 ## Known limitations
 
 - Local-only, unsynchronized data; no export/backup.
-- Items have no categories; editing replaces the name, amount and unit and keeps no history. Units are a fixed English list and are not converted or summed.
+- Items have no categories; editing replaces the name, amount and unit and keeps no history. Units are a fixed list (shown in the selected language, stored as language-independent ids) and are not converted or summed. Item names are never translated, and amounts always use "." as the decimal separator.
 - Removing items, including "Clear completed", is permanent: there is no undo or trash.
 - Native Android/iOS builds untested; Playwright covers Chromium only.
 - `npm audit` reports moderate advisories caused by Ionic 9's React Router 6 requirement and the Capacitor CLI's dev-only dependencies; see [docs/development.md](docs/development.md#known-dependency-advisories).

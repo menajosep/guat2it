@@ -51,6 +51,20 @@
   display: block;
 }
 
+.language-control {
+  padding-inline: 0.5rem;
+}
+
+.language-select {
+  min-height: 2.5rem;
+  padding: 0 0.5rem;
+  font: inherit;
+  color: var(--ion-text-color);
+  background: transparent;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+}
+
 .edit-item-actions {
   display: flex;
   gap: 0.5rem;

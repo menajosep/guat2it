@@ -1,4 +1,4 @@
-import { formatQuantity, parseQuantity, type QuantityDraft } from './quantity';
+import { parseQuantity, type QuantityDraft } from './quantity';
 
 const draft = (amount: string, unit: QuantityDraft['unit']): QuantityDraft => ({ amount, unit });
 
@@ -45,23 +45,5 @@ describe('parseQuantity', () => {
       ok: false,
       error: 'amount-not-allowed',
     });
-  });
-});
-
-describe('formatQuantity', () => {
-  it('uses the singular for 1 and the plural otherwise', () => {
-    expect(formatQuantity({ amount: 1, unit: 'cup' })).toBe('1 cup');
-    expect(formatQuantity({ amount: 2, unit: 'cup' })).toBe('2 cups');
-    expect(formatQuantity({ amount: 0.5, unit: 'teaspoon' })).toBe('0.5 teaspoons');
-    expect(formatQuantity({ amount: 500, unit: 'gram' })).toBe('500 grams');
-    expect(formatQuantity({ amount: 2, unit: 'leaf' })).toBe('2 leaves');
-  });
-
-  it('shows units without an amount as their label', () => {
-    expect(formatQuantity({ unit: 'to-taste' })).toBe('to taste');
-  });
-
-  it('returns undefined when there is no unit', () => {
-    expect(formatQuantity({})).toBeUndefined();
   });
 });

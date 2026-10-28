@@ -1,3 +1,5 @@
+import { LanguageService } from '../features/language/application/language-service';
+import { LocalStorageLanguagePreferenceStore } from '../features/language/infrastructure/local-storage-language-preference-store';
 import { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 import { DexieShoppingItemStore } from '../features/shopping-list/infrastructure/dexie-shopping-item-store';
 import { AppDatabase, DATABASE_NAME } from '../infrastructure/persistence/app-database';
@@ -12,4 +14,8 @@ export function createShoppingListService(
     generateId,
     now: () => new Date(),
   });
+}
+
+export function createLanguageService(storage: Storage = localStorage): LanguageService {
+  return new LanguageService(new LocalStorageLanguagePreferenceStore(storage));
 }
