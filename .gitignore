@@ -17,14 +17,27 @@ test-results/
 *.mobileprovision
 *.keystore
 *.jks
+keystore.properties
+signing.properties
 
 # Capacitor native projects are generated locally (see README); build output is never committed
+.gradle/
+.kotlin/
+.cxx/
+.externalNativeBuild/
+*.apk
+*.aab
+*.aar
+*.hprof
+android/
 android/.gradle/
 android/build/
 android/app/build/
+android/app/release/
 android/local.properties
 android/capacitor-cordova-android-plugins/
 android/app/src/main/assets/public/
+ios/
 ios/App/build/
 ios/App/Pods/
 ios/App/App/public/
