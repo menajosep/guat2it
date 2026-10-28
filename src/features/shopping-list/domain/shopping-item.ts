@@ -48,6 +48,10 @@ export function withCompleted(item: ShoppingItem, completed: boolean): ShoppingI
   return { ...item, completed };
 }
 
+export function completedItems(items: readonly ShoppingItem[]): ShoppingItem[] {
+  return items.filter((item) => item.completed);
+}
+
 export function sortByCreation(items: readonly ShoppingItem[]): ShoppingItem[] {
   return [...items].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 }

@@ -1,5 +1,6 @@
 import { ok, type Result } from '../../../shared/types/result';
 import {
+  completedItems,
   createShoppingItem,
   sortByCreation,
   withCompleted,
@@ -57,6 +58,15 @@ export class ShoppingListService {
     }
     await this.deps.store.remove(id);
     return item;
+  }
+
+  /** Removes every stored completed item at once and returns them (empty when there were none). */
+  async clearCompleted(): Promise<ShoppingItem[]> {
+    const completed = completedItems(sortByCreation(await this.deps.store.getAll()));
+    if (completed.length > 0) {
+      await this.deps.store.removeMany(completed.map((item) => item.id));
+    }
+    return completed;
   }
 
   /** The value is `undefined` when nothing changed: unknown id or the name is already the same. */

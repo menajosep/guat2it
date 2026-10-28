@@ -31,6 +31,11 @@ class InMemoryStore implements ShoppingItemStore {
     this.items.delete(id);
     return Promise.resolve();
   }
+  removeMany(ids: readonly string[]): Promise<void> {
+    this.check();
+    ids.forEach((id) => this.items.delete(id));
+    return Promise.resolve();
+  }
 }
 
 function setup() {
@@ -145,6 +150,40 @@ describe('ShoppingListService', () => {
       value: undefined,
     });
     expect(await service.renameItem('missing', 'Bread')).toEqual({ ok: true, value: undefined });
+    expect(store.items.size).toBe(1);
+  });
+
+  it('clears completed items and keeps active ones in order', async () => {
+    const { service } = setup();
+    const milk = await service.addItem('Milk');
+    await service.addItem('Bread');
+    const eggs = await service.addItem('Eggs');
+    if (!milk.ok || !eggs.ok) throw new Error('expected items to be added');
+    await service.setCompleted(milk.value.id, true);
+    await service.setCompleted(eggs.value.id, true);
+
+    const cleared = await service.clearCompleted();
+    expect(cleared.map((i) => i.name)).toEqual(['Milk', 'Eggs']);
+    expect((await service.list()).map((i) => [i.name, i.completed])).toEqual([['Bread', false]]);
+  });
+
+  it('reports nothing cleared when no item is completed', async () => {
+    const { service, store } = setup();
+    expect(await service.clearCompleted()).toEqual([]);
+    await service.addItem('Milk');
+    expect(await service.clearCompleted()).toEqual([]);
+    expect(store.items.size).toBe(1);
+  });
+
+  it('keeps every item when clearing completed items fails', async () => {
+    const { service, store } = setup();
+    const milk = await service.addItem('Milk');
+    if (!milk.ok) throw new Error('expected item to be added');
+    await service.setCompleted(milk.value.id, true);
+    store.failWith = new PersistenceError('storage down');
+
+    await expect(service.clearCompleted()).rejects.toBeInstanceOf(PersistenceError);
+    store.failWith = null;
     expect(store.items.size).toBe(1);
   });
 

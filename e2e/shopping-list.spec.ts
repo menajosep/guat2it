@@ -76,3 +76,37 @@ test('rejects a blank item name', async ({ page }) => {
   await page.getByRole('button', { name: 'Add item' }).click();
   await expect(page.getByRole('alert')).toHaveText('Enter an item name.');
 });
+
+test('clears completed items after confirmation and keeps active ones', async ({ page }) => {
+  await page.goto('/');
+
+  for (const name of ['Milk', 'Bread', 'Eggs']) {
+    await page.getByLabel('Item name').fill(name);
+    await page.getByRole('button', { name: 'Add item' }).click();
+    await expect(page.getByRole('checkbox', { name })).toBeVisible();
+  }
+  await expect(page.getByRole('button', { name: 'Clear completed' })).toHaveCount(0);
+
+  await page.getByRole('checkbox', { name: 'Milk' }).click();
+  await page.getByRole('checkbox', { name: 'Eggs' }).click();
+
+  await page.getByRole('button', { name: 'Clear completed' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Clear completed items?' });
+  await expect(dialog).toContainText('This removes 2 completed items from the list.');
+
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Milk' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Clear completed' }).click();
+  await dialog.getByRole('button', { name: 'Clear' }).click();
+  await expect(page.getByRole('status')).toHaveText('Cleared 2 completed items');
+  await expect(page.getByRole('checkbox', { name: 'Milk' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Eggs' })).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Bread' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Clear completed' })).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: 'Bread' })).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: 'Milk' })).toHaveCount(0);
+});

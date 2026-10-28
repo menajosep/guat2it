@@ -3,6 +3,9 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { App } from '../app/App';
 import { createShoppingListService } from '../app/create-services';
+import { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
+import { DexieShoppingItemStore } from '../features/shopping-list/infrastructure/dexie-shopping-item-store';
+import { AppDatabase } from '../infrastructure/persistence/app-database';
 import { PersistenceError } from '../shared/errors/persistence-error';
 
 setupIonicReact();
@@ -78,6 +81,44 @@ async function renameTo(user: User, currentName: string, newName: string) {
 }
 
 const statusMessage = () => within(screen.getByRole('status'));
+
+/** Stores items (fixed ids and creation times) before the app renders; `done` marks completed ones. */
+async function seedItems(databaseName: string, items: readonly { name: string; done?: boolean }[]) {
+  let counter = 0;
+  const seeder = new ShoppingListService({
+    store: new DexieShoppingItemStore(new AppDatabase(databaseName)),
+    generateId: () => `seed-${String(counter)}`,
+    now: () => new Date(Date.UTC(2026, 0, 1, 0, 0, counter)),
+  });
+  for (const { name, done } of items) {
+    counter += 1;
+    const added = await seeder.addItem(name);
+    if (done && added.ok) await seeder.setCompleted(added.value.id, true);
+  }
+}
+
+async function renderSeededApp(
+  databaseName: string,
+  items: readonly { name: string; done?: boolean }[],
+) {
+  await seedItems(databaseName, items);
+  const service = createShoppingListService(databaseName);
+  const view = render(<App shoppingListService={service} />);
+  await screen.findByText(items[0]?.name ?? '');
+  return { service, ...view };
+}
+
+const clearCompletedButton = () => screen.queryByText('Clear completed');
+
+async function openClearDialog(user: User): Promise<HTMLElement> {
+  const trigger = await screen.findByText('Clear completed');
+  await user.click(trigger);
+  return screen.findByRole('alertdialog');
+}
+
+async function chooseInDialog(user: User, dialog: HTMLElement, name: 'Cancel' | 'Clear') {
+  await user.click(within(dialog).getByRole('button', { name }));
+}
 
 describe('shopping list', () => {
   afterEach(cleanup);
@@ -359,6 +400,177 @@ describe('shopping list', () => {
     expect(await screen.findByText('Could not remove.')).toBeInTheDocument();
     expect(screen.queryByText('Could not update.')).not.toBeInTheDocument();
     expect(screen.getByText('Milk')).toBeInTheDocument();
+  });
+
+  it('shows "Clear completed" only while at least one item is completed', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-visibility'), [
+      { name: 'Milk' },
+      { name: 'Bread' },
+    ]);
+    expect(clearCompletedButton()).not.toBeInTheDocument();
+
+    const [milkCheckbox] = within(screen.getByLabelText('Shopping items')).getAllByRole(
+      'checkbox',
+      { hidden: true },
+    );
+    if (!milkCheckbox) throw new Error('expected the Milk checkbox');
+    await user.click(milkCheckbox);
+    expect(await screen.findByText('Clear completed')).toBeInTheDocument();
+
+    await user.click(milkCheckbox);
+    await waitFor(() => {
+      expect(clearCompletedButton()).not.toBeInTheDocument();
+    });
+    expect((await service.list()).every((item) => !item.completed)).toBe(true);
+  });
+
+  it('does not show "Clear completed" for an empty list', async () => {
+    await renderApp(uniqueDatabase('clear-empty'));
+    expect(clearCompletedButton()).not.toBeInTheDocument();
+  });
+
+  it('asks for confirmation with the number of items before removing anything', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-confirm'), [
+      { name: 'Milk', done: true },
+      { name: 'Eggs', done: true },
+      { name: 'Bread' },
+    ]);
+
+    const dialog = await openClearDialog(user);
+    expect(dialog).toHaveAccessibleName('Clear completed items?');
+    expect(dialog).toHaveAccessibleDescription('This removes 2 completed items from the list.');
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    expect(await service.list()).toHaveLength(3);
+    expect(screen.getByText('Milk')).toBeInTheDocument();
+  });
+
+  it('uses singular wording for a single completed item', async () => {
+    const user = userEvent.setup();
+    await renderSeededApp(uniqueDatabase('clear-singular'), [{ name: 'Milk', done: true }]);
+
+    const dialog = await openClearDialog(user);
+    expect(dialog).toHaveAccessibleDescription('This removes 1 completed item from the list.');
+  });
+
+  it('removes only completed items when confirmed and reports how many', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-confirmed'), [
+      { name: 'Milk', done: true },
+      { name: 'Bread' },
+      { name: 'Eggs', done: true },
+      { name: 'Rice' },
+    ]);
+
+    const dialog = await openClearDialog(user);
+    await chooseInDialog(user, dialog, 'Clear');
+
+    expect(await statusMessage().findByText('Cleared 2 completed items')).toBeInTheDocument();
+    const list = screen.getByLabelText('Shopping items');
+    expect(within(list).queryByText('Milk')).not.toBeInTheDocument();
+    expect(within(list).queryByText('Eggs')).not.toBeInTheDocument();
+    expect(
+      within(list)
+        .getAllByRole('checkbox', { hidden: true })
+        .map((box) => box.closest('ion-checkbox')?.textContent),
+    ).toEqual(['Bread', 'Rice']);
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(clearCompletedButton()).not.toBeInTheDocument();
+    expect((await service.list()).map((item) => item.name)).toEqual(['Bread', 'Rice']);
+  });
+
+  it('keeps cleared items cleared after the app is loaded again', async () => {
+    const user = userEvent.setup();
+    const databaseName = uniqueDatabase('clear-reload');
+    const first = await renderSeededApp(databaseName, [
+      { name: 'Milk', done: true },
+      { name: 'Bread' },
+    ]);
+    await chooseInDialog(user, await openClearDialog(user), 'Clear');
+    await statusMessage().findByText('Cleared 1 completed item');
+    first.unmount();
+
+    await renderApp(databaseName);
+    expect(screen.getByText('Bread')).toBeInTheDocument();
+    expect(screen.queryByText('Milk')).not.toBeInTheDocument();
+  });
+
+  it('shows the empty-list message when every item was completed', async () => {
+    const user = userEvent.setup();
+    await renderSeededApp(uniqueDatabase('clear-all'), [{ name: 'Milk', done: true }]);
+
+    await chooseInDialog(user, await openClearDialog(user), 'Clear');
+    expect(await screen.findByText(/shopping list is empty/i)).toBeInTheDocument();
+  });
+
+  it('changes nothing when the confirmation is cancelled', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-cancel'), [
+      { name: 'Milk', done: true },
+    ]);
+
+    await chooseInDialog(user, await openClearDialog(user), 'Cancel');
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Milk')).toBeInTheDocument();
+    expect(await service.list()).toHaveLength(1);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('changes nothing when the confirmation is dismissed with Escape', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-escape'), [
+      { name: 'Milk', done: true },
+    ]);
+
+    await openClearDialog(user);
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    });
+    expect(await service.list()).toHaveLength(1);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('keeps an item that was reactivated before the clearing was confirmed', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-reactivated'), [
+      { name: 'Milk', done: true },
+      { name: 'Eggs', done: true },
+    ]);
+
+    const dialog = await openClearDialog(user);
+    const milk = (await service.list()).find((item) => item.name === 'Milk');
+    if (!milk) throw new Error('expected Milk to be stored');
+    await service.setCompleted(milk.id, false);
+    await chooseInDialog(user, dialog, 'Clear');
+
+    expect(await statusMessage().findByText('Cleared 1 completed item')).toBeInTheDocument();
+    expect((await service.list()).map((item) => item.name)).toEqual(['Milk']);
+  });
+
+  it('keeps every item and shows an error when clearing cannot be stored', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderSeededApp(uniqueDatabase('clear-failure'), [
+      { name: 'Milk', done: true },
+      { name: 'Bread' },
+    ]);
+    vi.spyOn(service, 'clearCompleted').mockRejectedValueOnce(
+      new PersistenceError('Could not remove the items.'),
+    );
+
+    await chooseInDialog(user, await openClearDialog(user), 'Clear');
+
+    const message = await screen.findByText('Could not remove the items.');
+    expect(message.closest('[role="alert"]')).not.toBeNull();
+    expect(screen.getByText('Milk')).toBeInTheDocument();
+    expect(screen.getByText('Bread')).toBeInTheDocument();
+    expect(await service.list()).toHaveLength(2);
   });
 
   it('shows an error with a retry when loading fails', async () => {

@@ -50,6 +50,21 @@ describe('DexieShoppingItemStore', () => {
     expect(await reopened.getAll()).toEqual([{ ...milk, name: 'Oat milk' }]);
   });
 
+  it('removes only the given items in one operation', async () => {
+    const store = new DexieShoppingItemStore(new AppDatabase(uniqueName()));
+    const bread: ShoppingItem = { ...milk, id: 'bread', name: 'Bread' };
+    const eggs: ShoppingItem = { ...milk, id: 'eggs', name: 'Eggs' };
+    await store.save(milk);
+    await store.save(bread);
+    await store.save(eggs);
+
+    await store.removeMany(['milk', 'eggs', 'unknown']);
+    expect(await store.getAll()).toEqual([bread]);
+
+    await store.removeMany([]);
+    expect(await store.getAll()).toEqual([bread]);
+  });
+
   it('reports storage failures as PersistenceError', async () => {
     const db = new AppDatabase(uniqueName());
     const store = new DexieShoppingItemStore(db);
@@ -58,5 +73,6 @@ describe('DexieShoppingItemStore', () => {
 
     await expect(store.getAll()).rejects.toBeInstanceOf(PersistenceError);
     await expect(store.save(milk)).rejects.toBeInstanceOf(PersistenceError);
+    await expect(store.removeMany(['milk'])).rejects.toBeInstanceOf(PersistenceError);
   });
 });
