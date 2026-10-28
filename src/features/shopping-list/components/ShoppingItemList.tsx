@@ -1,22 +1,23 @@
 import { IonButton, IonCheckbox, IonIcon, IonItem, IonList, IonNote } from '@ionic/react';
 import { createOutline, trashOutline } from 'ionicons/icons';
 import { useEffect, useRef, useState } from 'react';
+import { formatQuantity, type QuantityDraft } from '../domain/quantity';
 import type { ShoppingItem } from '../domain/shopping-item';
-import type { RenameOutcome } from '../hooks/use-shopping-list';
+import type { UpdateOutcome } from '../hooks/use-shopping-list';
 import { EditItemForm } from './EditItemForm';
 
 interface ShoppingItemListProps {
   items: readonly ShoppingItem[];
   onSetCompleted: (id: string, completed: boolean) => void;
   onRemove: (id: string) => void;
-  onRename: (id: string, name: string) => Promise<RenameOutcome>;
+  onUpdate: (id: string, name: string, quantity: QuantityDraft) => Promise<UpdateOutcome>;
 }
 
 export function ShoppingItemList({
   items,
   onSetCompleted,
   onRemove,
-  onRename,
+  onUpdate,
 }: ShoppingItemListProps) {
   // Only one row is edited at a time; starting another edit discards the previous draft.
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export function ShoppingItemList({
           <IonItem key={item.id}>
             <EditItemForm
               item={item}
-              onRename={onRename}
+              onUpdate={onUpdate}
               onClose={() => {
                 closeEditor(item.id);
               }}
@@ -69,6 +70,9 @@ export function ShoppingItemList({
               }}
             >
               {item.name}
+              {formatQuantity(item) && (
+                <IonNote className="item-quantity">{formatQuantity(item)}</IonNote>
+              )}
             </IonCheckbox>
             <IonButton
               slot="end"

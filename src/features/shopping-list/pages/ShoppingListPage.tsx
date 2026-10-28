@@ -26,7 +26,7 @@ export function ShoppingListPage() {
     addItem,
     setCompleted,
     removeItem,
-    renameItem,
+    updateItem,
     clearCompleted,
   } = useShoppingList();
   const completedCount = completedItems(items).length;
@@ -65,7 +65,7 @@ export function ShoppingListPage() {
                 items={items}
                 onSetCompleted={(id, completed) => void setCompleted(id, completed)}
                 onRemove={(id) => void removeItem(id)}
-                onRename={renameItem}
+                onUpdate={updateItem}
               />
               <ClearCompletedButton
                 completedCount={completedCount}

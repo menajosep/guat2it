@@ -22,6 +22,35 @@
   padding: 0.75rem 0;
 }
 
+.quantity-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.unit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.unit-field select {
+  min-height: 3.5rem;
+  padding: 0 0.5rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--ion-text-color);
+  background: transparent;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+}
+
+.item-quantity {
+  display: block;
+}
+
 .edit-item-actions {
   display: flex;
   gap: 0.5rem;
