@@ -6,6 +6,8 @@ A personal meal-planning app that will grow, one OpenSpec change at a time, from
 
 Implemented: a **local shopping list** — add items with an optional amount and unit, mark them completed/active, edit them inline (name, amount, unit), remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages for every operation, and empty/loading/error states. The interface is available in **English, Spanish and Catalan**: pick the language in the toolbar; the choice is remembered on the device, and the first launch follows the device language when supported.
 
+The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
+
 Not implemented (yet): categories, recipes, meal planning, shopping lists generated from meals, sync, accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
