@@ -4,10 +4,11 @@ import {
   createShoppingItem,
   sortByCreation,
   withCompleted,
-  withName,
-  type ItemNameError,
+  withDetails,
+  type ItemErrors,
   type ShoppingItem,
 } from '../domain/shopping-item';
+import { EMPTY_QUANTITY_DRAFT, type QuantityDraft } from '../domain/quantity';
 import type { ShoppingItemStore } from './shopping-item-store';
 
 export interface ShoppingListDependencies {
@@ -16,7 +17,7 @@ export interface ShoppingListDependencies {
   now: () => Date;
 }
 
-export interface RenameChange {
+export interface UpdateChange {
   previous: ShoppingItem;
   item: ShoppingItem;
 }
@@ -28,8 +29,11 @@ export class ShoppingListService {
     return sortByCreation(await this.deps.store.getAll());
   }
 
-  async addItem(rawName: string): Promise<Result<ShoppingItem, ItemNameError>> {
-    const created = createShoppingItem(rawName, this.deps.generateId(), this.deps.now());
+  async addItem(
+    rawName: string,
+    quantity: QuantityDraft = EMPTY_QUANTITY_DRAFT,
+  ): Promise<Result<ShoppingItem, ItemErrors>> {
+    const created = createShoppingItem(rawName, this.deps.generateId(), this.deps.now(), quantity);
     if (created.ok) {
       await this.deps.store.save(created.value);
     }
@@ -69,23 +73,28 @@ export class ShoppingListService {
     return completed;
   }
 
-  /** The value is `undefined` when nothing changed: unknown id or the name is already the same. */
-  async renameItem(
+  /**
+   * Changes the name, amount and unit of an item. The value is `undefined` when nothing changed:
+   * unknown id, or the validated details equal the stored ones.
+   */
+  async updateItem(
     id: string,
     rawName: string,
-  ): Promise<Result<RenameChange | undefined, ItemNameError>> {
+    quantity: QuantityDraft,
+  ): Promise<Result<UpdateChange | undefined, ItemErrors>> {
     const item = await this.deps.store.get(id);
     if (!item) {
       return ok(undefined);
     }
-    const renamed = withName(item, rawName);
-    if (!renamed.ok) {
-      return renamed;
+    const updated = withDetails(item, rawName, quantity);
+    if (!updated.ok) {
+      return updated;
     }
-    if (renamed.value.name === item.name) {
+    const next = updated.value;
+    if (next.name === item.name && next.amount === item.amount && next.unit === item.unit) {
       return ok(undefined);
     }
-    await this.deps.store.save(renamed.value);
-    return ok({ previous: item, item: renamed.value });
+    await this.deps.store.save(next);
+    return ok({ previous: item, item: next });
   }
 }

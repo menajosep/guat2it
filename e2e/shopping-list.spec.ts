@@ -43,9 +43,12 @@ test('renames an item inline and keeps the new name after a reload', async ({ pa
 
   await field.fill('   ');
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByRole('list', { name: 'Shopping items' }).getByRole('alert')).toHaveText(
-    'Enter an item name.',
-  );
+  await expect(
+    page
+      .getByRole('list', { name: 'Shopping items' })
+      .getByRole('alert')
+      .filter({ hasText: 'Enter an item name.' }),
+  ).toBeVisible();
 
   await field.fill('Oat milk');
   await page.getByRole('button', { name: 'Save' }).click();
@@ -74,7 +77,39 @@ test('rejects a blank item name', async ({ page }) => {
   await page.goto('/');
 
   await page.getByRole('button', { name: 'Add item' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Enter an item name.');
+  await expect(page.getByRole('alert').filter({ hasText: 'Enter an item name.' })).toBeVisible();
+});
+
+test('adds an item with amount and unit, edits it and keeps it after a reload', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  await page.getByLabel('Item name').fill('Flour');
+  await page.getByLabel('Amount', { exact: true }).fill('500');
+  await page.getByLabel('Unit', { exact: true }).selectOption({ label: 'gram' });
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await expect(page.getByRole('status')).toHaveText('Added Flour');
+  await expect(page.getByText('500 grams')).toBeVisible();
+
+  await page.getByLabel('Item name').fill('Salt');
+  await page.getByLabel('Amount', { exact: true }).fill('2');
+  await page.getByRole('button', { name: 'Add item' }).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Choose a unit for the amount.' }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Edit Flour' }).click();
+  await expect(page.getByLabel('Amount for Flour')).toHaveValue('500');
+  await expect(page.getByLabel('Unit for Flour')).toHaveValue('gram');
+  await page.getByLabel('Amount for Flour').fill('2');
+  await page.getByLabel('Unit for Flour').selectOption({ label: 'kilogram' });
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('status')).toHaveText('Updated Flour');
+  await expect(page.getByText('2 kilograms')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText('2 kilograms')).toBeVisible();
 });
 
 test('clears completed items after confirmation and keeps active ones', async ({ page }) => {

@@ -65,6 +65,32 @@ describe('DexieShoppingItemStore', () => {
     expect(await store.getAll()).toEqual([bread]);
   });
 
+  it('persists amount and unit, and drops them when cleared', async () => {
+    const name = uniqueName();
+    const first = new AppDatabase(name);
+    const store = new DexieShoppingItemStore(first);
+    const flour: ShoppingItem = { ...milk, id: 'flour', name: 'Flour', amount: 500, unit: 'gram' };
+    await store.save(flour);
+    first.close();
+
+    const reopenedDb = new AppDatabase(name);
+    const reopened = new DexieShoppingItemStore(reopenedDb);
+    expect(await reopened.get('flour')).toEqual(flour);
+
+    await reopened.save(milk);
+    await reopened.save({ ...milk, id: 'flour', name: 'Flour' });
+    const cleared = await reopened.get('flour');
+    expect(cleared).toBeDefined();
+    expect(cleared && 'amount' in cleared).toBe(false);
+    expect(cleared && 'unit' in cleared).toBe(false);
+  });
+
+  it('loads items stored without amount and unit unchanged', async () => {
+    const db = new AppDatabase(uniqueName());
+    await db.shoppingItems.add(milk);
+    expect(await new DexieShoppingItemStore(db).get('milk')).toEqual(milk);
+  });
+
   it('reports storage failures as PersistenceError', async () => {
     const db = new AppDatabase(uniqueName());
     const store = new DexieShoppingItemStore(db);

@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ItemNameError, ShoppingItem } from '../domain/shopping-item';
+import { EMPTY_QUANTITY_DRAFT, type QuantityDraft } from '../domain/quantity';
+import type { ItemErrors, ShoppingItem } from '../domain/shopping-item';
 import { FALLBACK_ERROR_MESSAGE, feedbackMessages } from '../messages';
 import { useShoppingListService } from './shopping-list-service-context';
 
 export type LoadStatus = 'loading' | 'ready' | 'error';
 
 export type AddOutcome =
-  { status: 'added' } | { status: 'invalid'; error: ItemNameError } | { status: 'failed' };
+  { status: 'added' } | { status: 'invalid'; errors: ItemErrors } | { status: 'failed' };
 
-/** `unchanged` means there was nothing to rename (same name, or the item no longer exists). */
-export type RenameOutcome =
-  | { status: 'renamed' }
+/** `unchanged` means there was nothing to update (same details, or the item no longer exists). */
+export type UpdateOutcome =
+  | { status: 'updated' }
   | { status: 'unchanged' }
-  | { status: 'invalid'; error: ItemNameError }
+  | { status: 'invalid'; errors: ItemErrors }
   | { status: 'failed' };
 
 export interface Feedback {
@@ -31,10 +32,10 @@ export interface ShoppingListState {
   feedback: Feedback | null;
   dismissFeedback: () => void;
   reload: () => Promise<void>;
-  addItem: (name: string) => Promise<AddOutcome>;
+  addItem: (name: string, quantity?: QuantityDraft) => Promise<AddOutcome>;
   setCompleted: (id: string, completed: boolean) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
-  renameItem: (id: string, name: string) => Promise<RenameOutcome>;
+  updateItem: (id: string, name: string, quantity: QuantityDraft) => Promise<UpdateOutcome>;
   clearCompleted: () => Promise<void>;
 }
 
@@ -113,10 +114,10 @@ export function useShoppingList(): ShoppingListState {
   );
 
   const addItem = useCallback(
-    async (name: string): Promise<AddOutcome> => {
-      const result = await mutate(() => service.addItem(name));
+    async (name: string, quantity: QuantityDraft = EMPTY_QUANTITY_DRAFT): Promise<AddOutcome> => {
+      const result = await mutate(() => service.addItem(name, quantity));
       if (result.failed) return { status: 'failed' };
-      if (!result.value.ok) return { status: 'invalid', error: result.value.error };
+      if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
       announce('success', feedbackMessages.added(result.value.value.name));
       return { status: 'added' };
     },
@@ -145,15 +146,20 @@ export function useShoppingList(): ShoppingListState {
     [mutate, service, announce],
   );
 
-  const renameItem = useCallback(
-    async (id: string, name: string): Promise<RenameOutcome> => {
-      const result = await mutate(() => service.renameItem(id, name));
+  const updateItem = useCallback(
+    async (id: string, name: string, quantity: QuantityDraft): Promise<UpdateOutcome> => {
+      const result = await mutate(() => service.updateItem(id, name, quantity));
       if (result.failed) return { status: 'failed' };
-      if (!result.value.ok) return { status: 'invalid', error: result.value.error };
+      if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
       const change = result.value.value;
       if (!change) return { status: 'unchanged' };
-      announce('success', feedbackMessages.renamed(change.previous.name, change.item.name));
-      return { status: 'renamed' };
+      announce(
+        'success',
+        change.previous.name === change.item.name
+          ? feedbackMessages.updated(change.item.name)
+          : feedbackMessages.renamed(change.previous.name, change.item.name),
+      );
+      return { status: 'updated' };
     },
     [mutate, service, announce],
   );
@@ -174,7 +180,7 @@ export function useShoppingList(): ShoppingListState {
     addItem,
     setCompleted,
     removeItem,
-    renameItem,
+    updateItem,
     clearCompleted,
   };
 }

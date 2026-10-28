@@ -5,7 +5,7 @@ import {
   parseItemName,
   sortByCreation,
   withCompleted,
-  withName,
+  withDetails,
   type ShoppingItem,
 } from './shopping-item';
 
@@ -54,7 +54,40 @@ describe('createShoppingItem', () => {
   });
 
   it('propagates validation errors', () => {
-    expect(createShoppingItem(' ', 'id-1', created)).toEqual({ ok: false, error: 'empty' });
+    expect(createShoppingItem(' ', 'id-1', created)).toEqual({
+      ok: false,
+      error: { name: 'empty' },
+    });
+  });
+
+  it('stores a validated amount and unit', () => {
+    expect(
+      createShoppingItem('Flour', 'id-1', created, { amount: '0,5', unit: 'kilogram' }),
+    ).toEqual({
+      ok: true,
+      value: {
+        id: 'id-1',
+        name: 'Flour',
+        completed: false,
+        createdAt: created,
+        amount: 0.5,
+        unit: 'kilogram',
+      },
+    });
+  });
+
+  it('stores a unit that takes no amount without an amount', () => {
+    expect(createShoppingItem('Salt', 'id-1', created, { amount: '', unit: 'to-taste' })).toEqual({
+      ok: true,
+      value: { id: 'id-1', name: 'Salt', completed: false, createdAt: created, unit: 'to-taste' },
+    });
+  });
+
+  it('reports name and quantity errors together', () => {
+    expect(createShoppingItem(' ', 'id-1', created, { amount: '2', unit: undefined })).toEqual({
+      ok: false,
+      error: { name: 'empty', quantity: 'unit-required' },
+    });
   });
 });
 
@@ -68,10 +101,12 @@ describe('withCompleted', () => {
   });
 });
 
-describe('withName', () => {
+const NO_QUANTITY = { amount: '', unit: undefined } as const;
+
+describe('withDetails', () => {
   it('replaces the trimmed name and keeps every other field', () => {
     const original: ShoppingItem = { ...item('a', created), completed: true };
-    expect(withName(original, ' Oat milk ')).toEqual({
+    expect(withDetails(original, ' Oat milk ', NO_QUANTITY)).toEqual({
       ok: true,
       value: { id: 'a', name: 'Oat milk', completed: true, createdAt: created },
     });
@@ -80,10 +115,31 @@ describe('withName', () => {
 
   it('rejects blank and too long names', () => {
     const original = item('a', created);
-    expect(withName(original, '  ')).toEqual({ ok: false, error: 'empty' });
-    expect(withName(original, 'a'.repeat(MAX_ITEM_NAME_LENGTH + 1))).toEqual({
+    expect(withDetails(original, '  ', NO_QUANTITY)).toEqual({
       ok: false,
-      error: 'too-long',
+      error: { name: 'empty' },
+    });
+    expect(withDetails(original, 'a'.repeat(MAX_ITEM_NAME_LENGTH + 1), NO_QUANTITY)).toEqual({
+      ok: false,
+      error: { name: 'too-long' },
+    });
+  });
+
+  it('sets, changes and clears the quantity', () => {
+    const original = item('a', created);
+    const withQuantity = withDetails(original, 'a', { amount: '2', unit: 'cup' });
+    expect(withQuantity).toMatchObject({ ok: true, value: { amount: 2, unit: 'cup' } });
+    if (!withQuantity.ok) throw new Error('expected a valid item');
+
+    const cleared = withDetails(withQuantity.value, 'a', NO_QUANTITY);
+    expect(cleared).toEqual({ ok: true, value: original });
+    expect(cleared.ok && 'amount' in cleared.value).toBe(false);
+  });
+
+  it('rejects an invalid quantity', () => {
+    expect(withDetails(item('a', created), 'a', { amount: '2', unit: undefined })).toEqual({
+      ok: false,
+      error: { quantity: 'unit-required' },
     });
   });
 });

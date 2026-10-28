@@ -1,4 +1,5 @@
 import { PersistenceError } from '../../../shared/errors/persistence-error';
+import type { QuantityDraft } from '../domain/quantity';
 import type { ShoppingItem } from '../domain/shopping-item';
 import type { ShoppingItemStore } from './shopping-item-store';
 import { ShoppingListService } from './shopping-list-service';
@@ -38,6 +39,8 @@ class InMemoryStore implements ShoppingItemStore {
   }
 }
 
+const NO_QUANTITY: QuantityDraft = { amount: '', unit: undefined };
+
 function setup() {
   const store = new InMemoryStore();
   let counter = 0;
@@ -64,7 +67,7 @@ describe('ShoppingListService', () => {
 
   it('rejects invalid names without storing anything', async () => {
     const { service, store } = setup();
-    expect(await service.addItem('   ')).toEqual({ ok: false, error: 'empty' });
+    expect(await service.addItem('   ')).toEqual({ ok: false, error: { name: 'empty' } });
     expect(store.items.size).toBe(0);
   });
 
@@ -116,7 +119,7 @@ describe('ShoppingListService', () => {
     if (!milk.ok) throw new Error('expected item to be added');
     await service.setCompleted(milk.value.id, true);
 
-    const result = await service.renameItem(milk.value.id, ' Oat milk ');
+    const result = await service.updateItem(milk.value.id, ' Oat milk ', NO_QUANTITY);
     expect(result).toMatchObject({
       ok: true,
       value: { previous: { name: 'Milk' }, item: { name: 'Oat milk' } },
@@ -132,24 +135,30 @@ describe('ShoppingListService', () => {
     const milk = await service.addItem('Milk');
     if (!milk.ok) throw new Error('expected item to be added');
 
-    expect(await service.renameItem(milk.value.id, '  ')).toEqual({ ok: false, error: 'empty' });
-    expect(await service.renameItem(milk.value.id, 'a'.repeat(101))).toEqual({
+    expect(await service.updateItem(milk.value.id, '  ', NO_QUANTITY)).toEqual({
       ok: false,
-      error: 'too-long',
+      error: { name: 'empty' },
+    });
+    expect(await service.updateItem(milk.value.id, 'a'.repeat(101), NO_QUANTITY)).toEqual({
+      ok: false,
+      error: { name: 'too-long' },
     });
     expect((await service.list())[0]?.name).toBe('Milk');
   });
 
-  it('treats an unchanged name or an unknown id as nothing to rename', async () => {
+  it('treats unchanged details or an unknown id as nothing to update', async () => {
     const { service, store } = setup();
     const milk = await service.addItem('Milk');
     if (!milk.ok) throw new Error('expected item to be added');
 
-    expect(await service.renameItem(milk.value.id, ' Milk ')).toEqual({
+    expect(await service.updateItem(milk.value.id, ' Milk ', NO_QUANTITY)).toEqual({
       ok: true,
       value: undefined,
     });
-    expect(await service.renameItem('missing', 'Bread')).toEqual({ ok: true, value: undefined });
+    expect(await service.updateItem('missing', 'Bread', NO_QUANTITY)).toEqual({
+      ok: true,
+      value: undefined,
+    });
     expect(store.items.size).toBe(1);
   });
 
@@ -187,6 +196,66 @@ describe('ShoppingListService', () => {
     expect(store.items.size).toBe(1);
   });
 
+  it('adds an item with amount and unit', async () => {
+    const { service, store } = setup();
+    const added = await service.addItem('Flour', { amount: '500', unit: 'gram' });
+    expect(added).toMatchObject({ ok: true, value: { name: 'Flour', amount: 500, unit: 'gram' } });
+    expect(store.items.size).toBe(1);
+  });
+
+  it('rejects an invalid quantity without storing anything', async () => {
+    const { service, store } = setup();
+    expect(await service.addItem('Flour', { amount: '500', unit: undefined })).toEqual({
+      ok: false,
+      error: { quantity: 'unit-required' },
+    });
+    expect(store.items.size).toBe(0);
+  });
+
+  it('updates only the quantity and reports the change', async () => {
+    const { service } = setup();
+    const flour = await service.addItem('Flour', { amount: '500', unit: 'gram' });
+    if (!flour.ok) throw new Error('expected item to be added');
+
+    const result = await service.updateItem(flour.value.id, 'Flour', {
+      amount: '2',
+      unit: 'kilogram',
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        previous: { amount: 500, unit: 'gram' },
+        item: { name: 'Flour', amount: 2, unit: 'kilogram' },
+      },
+    });
+    expect((await service.list())[0]).toMatchObject({ amount: 2, unit: 'kilogram' });
+  });
+
+  it('clears the quantity', async () => {
+    const { service, store } = setup();
+    const flour = await service.addItem('Flour', { amount: '500', unit: 'gram' });
+    if (!flour.ok) throw new Error('expected item to be added');
+
+    await service.updateItem(flour.value.id, 'Flour', NO_QUANTITY);
+    const stored = store.items.get(flour.value.id);
+    expect(stored).toBeDefined();
+    expect(stored && 'amount' in stored).toBe(false);
+    expect(stored && 'unit' in stored).toBe(false);
+  });
+
+  it('treats an unchanged quantity as nothing to update', async () => {
+    const { service } = setup();
+    const flour = await service.addItem('Flour', { amount: '500', unit: 'gram' });
+    if (!flour.ok) throw new Error('expected item to be added');
+
+    expect(
+      await service.updateItem(flour.value.id, 'Flour', { amount: '500,0', unit: 'gram' }),
+    ).toEqual({
+      ok: true,
+      value: undefined,
+    });
+  });
+
   it('propagates persistence failures to the caller', async () => {
     const { service, store } = setup();
     const milk = await service.addItem('Milk');
@@ -198,7 +267,7 @@ describe('ShoppingListService', () => {
     await expect(service.setCompleted(milk.value.id, true)).rejects.toBeInstanceOf(
       PersistenceError,
     );
-    await expect(service.renameItem(milk.value.id, 'Oat milk')).rejects.toBeInstanceOf(
+    await expect(service.updateItem(milk.value.id, 'Oat milk', NO_QUANTITY)).rejects.toBeInstanceOf(
       PersistenceError,
     );
     await expect(service.removeItem(milk.value.id)).rejects.toBeInstanceOf(PersistenceError);
