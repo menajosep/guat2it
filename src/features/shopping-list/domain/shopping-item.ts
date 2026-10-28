@@ -35,6 +35,15 @@ export function createShoppingItem(
   return ok({ id, name: name.value, completed: false, createdAt });
 }
 
+/** Replaces the name after validating it; every other field is kept. */
+export function withName(item: ShoppingItem, rawName: string): Result<ShoppingItem, ItemNameError> {
+  const name = parseItemName(rawName);
+  if (!name.ok) {
+    return name;
+  }
+  return ok({ ...item, name: name.value });
+}
+
 export function withCompleted(item: ShoppingItem, completed: boolean): ShoppingItem {
   return { ...item, completed };
 }

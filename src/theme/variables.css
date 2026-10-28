@@ -16,3 +16,51 @@
   text-decoration: line-through;
   opacity: 0.7;
 }
+
+.edit-item-form {
+  width: 100%;
+  padding: 0.75rem 0;
+}
+
+.edit-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.feedback-region {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1rem;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.feedback-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 40rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  pointer-events: auto;
+}
+
+.feedback-toast-success {
+  background: var(--ion-color-success);
+  color: var(--ion-color-success-contrast);
+}
+
+.feedback-toast-error {
+  background: var(--ion-color-danger);
+  color: var(--ion-color-danger-contrast);
+}
+
+.feedback-toast-error ion-button {
+  --color: var(--ion-color-danger-contrast);
+}

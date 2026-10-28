@@ -1,12 +1,8 @@
 import { IonButton, IonInput, IonNote } from '@ionic/react';
 import { useState } from 'react';
-import { MAX_ITEM_NAME_LENGTH, type ItemNameError } from '../domain/shopping-item';
+import type { ItemNameError } from '../domain/shopping-item';
 import type { AddOutcome } from '../hooks/use-shopping-list';
-
-const MESSAGES: Record<ItemNameError, string> = {
-  empty: 'Enter an item name.',
-  'too-long': `Item names can have at most ${String(MAX_ITEM_NAME_LENGTH)} characters.`,
-};
+import { ITEM_NAME_MESSAGES } from '../messages';
 
 interface AddItemFormProps {
   onAdd: (name: string) => Promise<AddOutcome>;
@@ -43,7 +39,7 @@ export function AddItemForm({ onAdd }: AddItemFormProps) {
         }}
       />
       <div id="add-item-error" role="alert">
-        {error && <IonNote color="danger">{MESSAGES[error]}</IonNote>}
+        {error && <IonNote color="danger">{ITEM_NAME_MESSAGES[error]}</IonNote>}
       </div>
       <IonButton type="submit" expand="block" disabled={submitting}>
         Add item

@@ -4,6 +4,7 @@ import {
   parseItemName,
   sortByCreation,
   withCompleted,
+  withName,
   type ShoppingItem,
 } from './shopping-item';
 
@@ -51,6 +52,26 @@ describe('withCompleted', () => {
     expect(completed.completed).toBe(true);
     expect(original.completed).toBe(false);
     expect(withCompleted(completed, false).completed).toBe(false);
+  });
+});
+
+describe('withName', () => {
+  it('replaces the trimmed name and keeps every other field', () => {
+    const original: ShoppingItem = { ...item('a', created), completed: true };
+    expect(withName(original, ' Oat milk ')).toEqual({
+      ok: true,
+      value: { id: 'a', name: 'Oat milk', completed: true, createdAt: created },
+    });
+    expect(original.name).toBe('a');
+  });
+
+  it('rejects blank and too long names', () => {
+    const original = item('a', created);
+    expect(withName(original, '  ')).toEqual({ ok: false, error: 'empty' });
+    expect(withName(original, 'a'.repeat(MAX_ITEM_NAME_LENGTH + 1))).toEqual({
+      ok: false,
+      error: 'too-long',
+    });
   });
 });
 

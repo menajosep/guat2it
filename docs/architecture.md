@@ -13,7 +13,7 @@ src/app (composition root) wires infrastructure into application
 
 | Location                                           | Responsibility                                                                 | May import                                |
 | -------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
-| `src/features/shopping-list/domain/`               | Entity type, name validation, creation, completion, ordering. Pure functions.  | `src/shared`                              |
+| `src/features/shopping-list/domain/`               | Entity type, name validation, creation, rename, completion, ordering. Pure.    | `src/shared`                              |
 | `src/features/shopping-list/application/`          | `ShoppingListService` (use cases) and the `ShoppingItemStore` port.            | domain, `src/shared`                      |
 | `src/features/shopping-list/infrastructure/`       | `DexieShoppingItemStore`, the port implementation. Wraps failures.             | application, domain, `src/infrastructure` |
 | `src/features/shopping-list/hooks/`                | React hooks and context exposing the service and UI state (`useShoppingList`). | application, domain                       |
@@ -29,9 +29,9 @@ ESLint forbids `domain/` and `application/` from importing React, Ionic, React R
 1. A component calls an action from `useShoppingList`.
 2. The hook calls `ShoppingListService`, which applies domain rules and uses `ShoppingItemStore`.
 3. `DexieShoppingItemStore` writes to IndexedDB.
-4. The hook re-reads the list from storage and re-renders, so the UI always shows persisted data.
+4. The hook re-reads the list from storage and re-renders, so the UI always shows persisted data. It also records the outcome of the operation as feedback (a success message naming the item, or an error message), which `FeedbackToast` shows: success messages disappear on their own, errors stay until dismissed.
 
-Expected failures (invalid names) are `Result` values; storage failures are thrown as `PersistenceError` and shown as messages with `role="alert"`.
+Expected failures (invalid names) are `Result` values and are shown next to the field; storage failures are thrown as `PersistenceError` and shown as dismissible feedback with `role="alert"`. Services report what actually changed (the affected item, or `undefined` for a no-op), which is what decides whether a success message is shown.
 
 ## Data model
 

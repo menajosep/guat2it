@@ -4,7 +4,7 @@ A personal meal-planning app that will grow, one OpenSpec change at a time, from
 
 ## Current scope
 
-Implemented: a **local shopping list** — add items, mark them completed/active, remove them, with validation, empty/loading/error states.
+Implemented: a **local shopping list** — add items, mark them completed/active, rename them inline, remove them, with validation, success/error messages for every operation, and empty/loading/error states.
 
 Not implemented (yet): categories, recipes, meal planning, shopping lists generated from meals, sync, accounts.
 
@@ -95,10 +95,10 @@ docs/                       architecture and development guides
 ## Known limitations
 
 - Local-only, unsynchronized data; no export/backup.
-- Items cannot be edited (renamed) after creation, and have no categories or quantities.
+- Items have no categories or quantities; renaming replaces the name and keeps no history.
 - Native Android/iOS builds untested; Playwright covers Chromium only.
 - `npm audit` reports moderate advisories caused by Ionic 9's React Router 6 requirement and the Capacitor CLI's dev-only dependencies; see [docs/development.md](docs/development.md#known-dependency-advisories).
 
 ## Next recommended step
 
-Create an OpenSpec change `edit-shopping-item` (rename an item, and optionally clear completed items). It exercises the full workflow on a small, low-risk behavior change before recipes and categories are introduced.
+Create a small OpenSpec change to clear all completed items at once (a bulk, destructive action that needs a confirmation decision) before recipes and categories are introduced.

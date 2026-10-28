@@ -32,17 +32,17 @@ Alternative: derive names and no-ops from the hook's `items` state. Rejected: it
 
 ### Feedback state lives in the hook; the message text lives with the UI
 
-`useShoppingList` exposes `feedback: { id: number; kind: 'success' | 'error'; message: string } | null` and `dismissFeedback()`. The `mutate` helper sets success feedback from the service outcome and error feedback from the caught error (`PersistenceError` messages are already user-readable). A new feedback replaces the previous one; `id` lets the UI restart the auto-dismiss timer. Message wording is built in one place (a small `feedback-messages.ts` in the feature) so it is easy to test and keep consistent with the spec.
+`useShoppingList` exposes `feedback: { id: number; kind: 'success' | 'error'; message: string } | null` and `dismissFeedback()`. The `mutate` helper sets success feedback from the service outcome and error feedback from the caught error (`PersistenceError` messages are already user-readable). A new feedback replaces the previous one; `id` lets the UI restart the auto-dismiss timer. Message wording is built in one place (`messages.ts` in the feature) so it is easy to test and keep consistent with the spec.
 
 Validation errors (`invalid` outcomes) never create feedback; they are shown inline next to the field.
 
 The persistent page banner is removed for mutations. The initial load failure keeps its inline message and "Try again" button, because it is tied to that button.
 
-### Feedback is shown in a toast that is announced politely
+### Feedback is shown in an in-page toast with its own live regions (decided after the spike)
 
-Use Ionic's toast: success messages auto-dismiss (about 3 seconds); error messages have no timeout and a dismiss button. It is rendered once on the page, driven by `feedback`. The shared name-error messages move from `AddItemForm` to a small module reused by the add form and the edit row.
+The spike (task 1.1) found that Ionic 9's `ion-toast` always renders its content with `role="status"` and `aria-live="polite"`, even for errors, inside its shadow DOM. That cannot satisfy the project rule that errors use `role="alert"`, and it cannot be queried by role in tests. Feedback is therefore rendered by a small `FeedbackToast` component: a fixed, toast-styled element with an always-mounted `role="status"` region for success messages (auto-dismissed after about 4 seconds) and a `role="alert"` element with a dismiss button for errors (no timeout). The success duration is a prop so tests can control it. The shared name-error messages move from `AddItemForm` to a small module reused by the add form and the edit row.
 
-Alternative: an inline status line on the page. Rejected by the user in favour of a toast, but it is the fallback if the toast cannot be made accessible (see risks).
+Alternative: `IonToast` with extra live-region markup. Rejected as it would announce messages twice or still not be queryable.
 
 ### Inline editing state is local to the list
 
@@ -50,8 +50,9 @@ Alternative: an inline status line on the page. Rejected by the user in favour o
 
 ## Risks / Trade-offs
 
-- [Ionic's toast may not be announced as the project requires (`role="alert"` for errors)] → Spike first (task 1.1): inspect the rendered toast attributes in the installed Ionic version. If it falls short, add `htmlAttributes`/a separate visually hidden live region, or fall back to the inline status line.
-- [Overlay and timers make tests flaky] → Make the success duration injectable/overridable in tests, assert on the message text and use fake timers for auto-dismiss; in Playwright assert right after the action.
+- [Ionic's toast is not announced as the project requires (`role="alert"` for errors)] → Confirmed by the spike; replaced by the in-page `FeedbackToast` (see Decisions).
+- [Overlay and timers make tests flaky] → The success duration is a prop; auto-dismiss is tested with fake timers and messages are asserted by text and role.
+- [Hydrated Ionic buttons move `aria-label` to their inner native button, so label queries in jsdom are timing-dependent] → UI tests locate row buttons through their row; Playwright's role queries pierce the shadow DOM.
 - [A toast on every checkbox toggle can feel noisy] → Accepted by design; revisit if it proves annoying in daily use.
 - [Changing service return types touches existing tests] → Update tests to assert the new outcomes; behavior of persisted data is unchanged.
 - [Focus handling in the inline editor is easy to get wrong on mobile] → Cover start, save and cancel in UI tests and an e2e flow; verify manually on a device when native builds are available.

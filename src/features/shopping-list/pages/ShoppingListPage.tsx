@@ -9,12 +9,23 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { AddItemForm } from '../components/AddItemForm';
+import { FeedbackToast } from '../components/FeedbackToast';
 import { ShoppingItemList } from '../components/ShoppingItemList';
 import { useShoppingList } from '../hooks/use-shopping-list';
 
 export function ShoppingListPage() {
-  const { items, status, errorMessage, reload, addItem, setCompleted, removeItem } =
-    useShoppingList();
+  const {
+    items,
+    status,
+    errorMessage,
+    feedback,
+    dismissFeedback,
+    reload,
+    addItem,
+    setCompleted,
+    removeItem,
+    renameItem,
+  } = useShoppingList();
 
   return (
     <IonPage>
@@ -50,10 +61,12 @@ export function ShoppingListPage() {
                 items={items}
                 onSetCompleted={(id, completed) => void setCompleted(id, completed)}
                 onRemove={(id) => void removeItem(id)}
+                onRename={renameItem}
               />
             </>
           )}
         </div>
+        <FeedbackToast feedback={feedback} onDismiss={dismissFeedback} />
       </IonContent>
     </IonPage>
   );
