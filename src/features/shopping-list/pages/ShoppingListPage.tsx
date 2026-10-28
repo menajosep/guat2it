@@ -9,8 +9,10 @@ import {
   IonToolbar,
 } from '@ionic/react';
 import { AddItemForm } from '../components/AddItemForm';
+import { ClearCompletedButton } from '../components/ClearCompletedButton';
 import { FeedbackToast } from '../components/FeedbackToast';
 import { ShoppingItemList } from '../components/ShoppingItemList';
+import { completedItems } from '../domain/shopping-item';
 import { useShoppingList } from '../hooks/use-shopping-list';
 
 export function ShoppingListPage() {
@@ -25,7 +27,9 @@ export function ShoppingListPage() {
     setCompleted,
     removeItem,
     renameItem,
+    clearCompleted,
   } = useShoppingList();
+  const completedCount = completedItems(items).length;
 
   return (
     <IonPage>
@@ -62,6 +66,10 @@ export function ShoppingListPage() {
                 onSetCompleted={(id, completed) => void setCompleted(id, completed)}
                 onRemove={(id) => void removeItem(id)}
                 onRename={renameItem}
+              />
+              <ClearCompletedButton
+                completedCount={completedCount}
+                onConfirm={() => void clearCompleted()}
               />
             </>
           )}

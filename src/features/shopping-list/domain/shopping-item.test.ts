@@ -1,4 +1,5 @@
 import {
+  completedItems,
   createShoppingItem,
   MAX_ITEM_NAME_LENGTH,
   parseItemName,
@@ -13,6 +14,18 @@ const created = new Date('2026-01-01T10:00:00Z');
 function item(id: string, createdAt: Date): ShoppingItem {
   return { id, name: id, completed: false, createdAt };
 }
+
+describe('completedItems', () => {
+  it('keeps only completed items, in the given order', () => {
+    const items = [
+      { ...item('a', created), completed: true },
+      item('b', created),
+      { ...item('c', created), completed: true },
+    ];
+    expect(completedItems(items).map((i) => i.id)).toEqual(['a', 'c']);
+    expect(completedItems([item('b', created)])).toEqual([]);
+  });
+});
 
 describe('parseItemName', () => {
   it('trims surrounding whitespace', () => {

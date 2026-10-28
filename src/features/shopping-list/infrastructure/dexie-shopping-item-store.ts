@@ -33,4 +33,12 @@ export class DexieShoppingItemStore implements ShoppingItemStore {
   remove(id: string): Promise<void> {
     return guard('remove the item', () => this.db.shoppingItems.delete(id));
   }
+
+  removeMany(ids: readonly string[]): Promise<void> {
+    return guard('remove the items', () =>
+      this.db.transaction('rw', this.db.shoppingItems, () =>
+        this.db.shoppingItems.bulkDelete([...ids]),
+      ),
+    );
+  }
 }

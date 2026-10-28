@@ -31,7 +31,7 @@ ESLint forbids `domain/` and `application/` from importing React, Ionic, React R
 3. `DexieShoppingItemStore` writes to IndexedDB.
 4. The hook re-reads the list from storage and re-renders, so the UI always shows persisted data. It also records the outcome of the operation as feedback (a success message naming the item, or an error message), which `FeedbackToast` shows: success messages disappear on their own, errors stay until dismissed.
 
-Expected failures (invalid names) are `Result` values and are shown next to the field; storage failures are thrown as `PersistenceError` and shown as dismissible feedback with `role="alert"`. Services report what actually changed (the affected item, or `undefined` for a no-op), which is what decides whether a success message is shown.
+Expected failures (invalid names) are `Result` values and are shown next to the field; storage failures are thrown as `PersistenceError` and shown as dismissible feedback with `role="alert"`. Services report what actually changed (the affected item, or `undefined` for a no-op), which is what decides whether a success message is shown. Clearing completed items is one all-or-nothing storage operation (`removeMany`, a single Dexie transaction) behind a confirmation dialog in the UI.
 
 ## Data model
 

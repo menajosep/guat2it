@@ -32,7 +32,7 @@ Add `removeMany(ids: string[]): Promise<void>` to `ShoppingItemStore`. The Dexie
 
 The page shows a "Clear completed" button only when `items.some(i => i.completed)`. Activating it opens a confirmation dialog with the title "Clear completed items?", a message such as "This removes 3 completed items from the list.", and "Cancel" and "Clear" buttons. The count shown comes from the items on screen when the dialog opens; the service removes whatever is completed at confirmation time and the feedback reports the number actually removed. Cancel, Escape or tapping the backdrop closes the dialog and changes nothing. The dialog text uses the singular for one item.
 
-The first task is a short spike to check that Ionic's `IonAlert` exposes dialog semantics (role, accessible name, focus handling) and can be driven from RTL and Playwright. If it cannot, the dialog is rendered in-page with `role="alertdialog"` like `FeedbackToast` was; the decision is then recorded here.
+The first task was a short spike to check that Ionic's `IonAlert` exposes dialog semantics and can be driven from RTL and Playwright. Outcome: `IonAlert` renders `role="alertdialog"` with `aria-modal`, `aria-labelledby` (title) and `aria-describedby` (message), its buttons are native `<button>` elements, and Escape dismisses it; it is queryable by role in jsdom, so it is used as is. The count is captured when the dialog opens so its text stays stable while it closes.
 
 ### Hook API and feedback
 

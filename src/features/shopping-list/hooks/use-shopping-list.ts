@@ -35,6 +35,7 @@ export interface ShoppingListState {
   setCompleted: (id: string, completed: boolean) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   renameItem: (id: string, name: string) => Promise<RenameOutcome>;
+  clearCompleted: () => Promise<void>;
 }
 
 type MutationResult<T> = { failed: true } | { failed: false; value: T };
@@ -157,6 +158,12 @@ export function useShoppingList(): ShoppingListState {
     [mutate, service, announce],
   );
 
+  const clearCompleted = useCallback(async () => {
+    const result = await mutate(() => service.clearCompleted());
+    if (result.failed || result.value.length === 0) return;
+    announce('success', feedbackMessages.cleared(result.value.length));
+  }, [mutate, service, announce]);
+
   return {
     items,
     status,
@@ -168,5 +175,6 @@ export function useShoppingList(): ShoppingListState {
     setCompleted,
     removeItem,
     renameItem,
+    clearCompleted,
   };
 }
