@@ -27,4 +27,4 @@
 
 - [x] 6.1 Update `README.md` (feature list and any "not built" notes) and docs touched by the change
 - [x] 6.2 Run `npm run check`, `npm run build` and `npm run test:e2e`; report any failed or skipped checks
-- [ ] 6.3 Verify with `openspec validate clear-completed-items`, then archive with `openspec archive clear-completed-items`
+- [x] 6.3 Verify with `openspec validate clear-completed-items`, then archive with `openspec archive clear-completed-items`
