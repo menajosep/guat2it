@@ -1,15 +1,6 @@
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonPage,
-  IonSpinner,
-  IonText,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/react';
+import { IonButton, IonContent, IonPage, IonSpinner, IonText } from '@ionic/react';
+import { ShoppingPageHeader } from '../components/ShoppingPageHeader';
 import { LanguageNotice } from '../../language/components/LanguageNotice';
-import { LanguageSelect } from '../../language/components/LanguageSelect';
 import { AddItemForm } from '../components/AddItemForm';
 import { ClearCompletedButton } from '../components/ClearCompletedButton';
 import { FeedbackToast } from '../components/FeedbackToast';
@@ -21,6 +12,7 @@ import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 export function ShoppingListPage() {
   const {
     items,
+    categories,
     status,
     errorMessage,
     feedback,
@@ -37,14 +29,7 @@ export function ShoppingListPage() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>{messages.pageTitle}</IonTitle>
-          <div slot="end" className="language-control">
-            <LanguageSelect />
-          </div>
-        </IonToolbar>
-      </IonHeader>
+      <ShoppingPageHeader title={messages.pageTitle} />
       <IonContent className="ion-padding">
         <div className="page-column">
           <LanguageNotice />
@@ -68,9 +53,10 @@ export function ShoppingListPage() {
           )}
           {status === 'ready' && (
             <>
-              <AddItemForm onAdd={addItem} />
+              <AddItemForm onAdd={addItem} categories={categories} />
               <ShoppingItemList
                 items={items}
+                categories={categories}
                 onSetCompleted={(id, completed) => void setCompleted(id, completed)}
                 onRemove={(id) => void removeItem(id)}
                 onUpdate={updateItem}

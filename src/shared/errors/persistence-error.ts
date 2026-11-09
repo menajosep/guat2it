@@ -1,5 +1,12 @@
 export type PersistenceAction =
-  'load-list' | 'read-item' | 'save-item' | 'remove-item' | 'remove-items';
+  | 'load-list'
+  | 'read-item'
+  | 'save-item'
+  | 'remove-item'
+  | 'remove-items'
+  | 'load-categories'
+  | 'save-category'
+  | 'remove-category';
 
 /** Failure of the storage layer (unavailable, quota exceeded, blocked, ...). */
 export class PersistenceError extends Error {

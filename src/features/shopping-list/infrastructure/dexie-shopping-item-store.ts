@@ -2,6 +2,8 @@ import { PersistenceError, type PersistenceAction } from '../../../shared/errors
 import type { AppDatabase } from '../../../infrastructure/persistence/app-database';
 import type { ShoppingItemStore } from '../application/shopping-item-store';
 import type { ShoppingItem } from '../domain/shopping-item';
+import { categoryNameKey, type Category } from '../domain/category';
+import { fail, ok, type Result } from '../../../shared/types/result';
 
 const ACTION_DESCRIPTIONS: Record<PersistenceAction, string> = {
   'load-list': 'load the shopping list',
@@ -9,6 +11,9 @@ const ACTION_DESCRIPTIONS: Record<PersistenceAction, string> = {
   'save-item': 'save the item',
   'remove-item': 'remove the item',
   'remove-items': 'remove the items',
+  'load-categories': 'load categories',
+  'save-category': 'save the category',
+  'remove-category': 'remove the category',
 };
 
 async function guard<T>(action: PersistenceAction, operation: () => Promise<T>): Promise<T> {
@@ -25,6 +30,15 @@ async function guard<T>(action: PersistenceAction, operation: () => Promise<T>):
 export class DexieShoppingItemStore implements ShoppingItemStore {
   constructor(private readonly db: AppDatabase) {}
 
+  getSnapshot(): Promise<{ items: ShoppingItem[]; categories: Category[] }> {
+    return guard('load-list', () =>
+      this.db.transaction('r', this.db.shoppingItems, this.db.categories, async () => ({
+        items: await this.db.shoppingItems.toArray(),
+        categories: await this.db.categories.toArray(),
+      })),
+    );
+  }
+
   getAll(): Promise<ShoppingItem[]> {
     return guard('load-list', () => this.db.shoppingItems.toArray());
   }
@@ -33,10 +47,16 @@ export class DexieShoppingItemStore implements ShoppingItemStore {
     return guard('read-item', () => this.db.shoppingItems.get(id));
   }
 
-  save(item: ShoppingItem): Promise<void> {
-    return guard('save-item', async () => {
-      await this.db.shoppingItems.put(item);
-    });
+  save(item: ShoppingItem): Promise<Result<void, 'missing-category'>> {
+    return guard('save-item', () =>
+      this.db.transaction('rw', this.db.shoppingItems, this.db.categories, async () => {
+        const ids = item.categoryIds ?? [];
+        const categories = await this.db.categories.bulkGet([...ids]);
+        if (categories.some((category) => category === undefined)) return fail('missing-category');
+        await this.db.shoppingItems.put(item);
+        return ok(undefined);
+      }),
+    );
   }
 
   remove(id: string): Promise<void> {
@@ -48,6 +68,47 @@ export class DexieShoppingItemStore implements ShoppingItemStore {
       this.db.transaction('rw', this.db.shoppingItems, () =>
         this.db.shoppingItems.bulkDelete([...ids]),
       ),
+    );
+  }
+
+  getCategories(): Promise<Category[]> {
+    return guard('load-categories', () => this.db.categories.toArray());
+  }
+
+  saveCategory(
+    category: Category,
+    create: boolean,
+  ): Promise<Result<Category | undefined, 'duplicate'>> {
+    return guard('save-category', () =>
+      this.db.transaction('rw', this.db.categories, async () => {
+        const categories = await this.db.categories.toArray();
+        const previous = categories.find((entry) => entry.id === category.id);
+        if (!create && !previous) return ok(undefined);
+        if (
+          categories.some(
+            (entry) =>
+              entry.id !== category.id &&
+              categoryNameKey(entry.name) === categoryNameKey(category.name),
+          )
+        )
+          return fail('duplicate');
+        if (previous?.name === category.name) return ok(undefined);
+        await this.db.categories.put(category);
+        return ok(category);
+      }),
+    );
+  }
+
+  deleteCategory(id: string): Promise<Result<Category | undefined, 'in-use'>> {
+    return guard('remove-category', () =>
+      this.db.transaction('rw', this.db.categories, this.db.shoppingItems, async () => {
+        const category = await this.db.categories.get(id);
+        if (!category) return ok(undefined);
+        const items = await this.db.shoppingItems.toArray();
+        if (items.some((item) => item.categoryIds?.includes(id))) return fail('in-use');
+        await this.db.categories.delete(id);
+        return ok(category);
+      }),
     );
   }
 }

@@ -4,11 +4,11 @@ A personal meal-planning app that will grow, one OpenSpec change at a time, from
 
 ## Current scope
 
-Implemented: a **local shopping list** — add items with an optional amount and unit, mark them completed/active, edit them inline (name, amount, unit), remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages for every operation, and empty/loading/error states. The interface is available in **English, Spanish and Catalan**: pick the language in the toolbar; the choice is remembered on the device, and the first launch follows the device language when supported.
+Implemented: a **local shopping list** — add items with an optional amount, unit and multiple categories, mark them completed/active, edit them inline, remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages and empty/loading/error states. Use the toolbar menu to switch between **Shopping list** and **Admin**, where categories can be created, renamed and deleted without a login. Items appear in each assigned category, and items without one appear under Uncategorized. A category in use cannot be deleted until it is removed from all items. The interface is available in **English, Spanish and Catalan**: pick the language in either screen's toolbar; the choice is remembered on the device, and the first launch follows the device language when supported.
 
 The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
 
-Not implemented (yet): categories, recipes, meal planning, shopping lists generated from meals, sync, accounts.
+Not implemented (yet): recipes, meal planning, shopping lists generated from meals, sync, accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
 
@@ -99,11 +99,11 @@ docs/                       architecture and development guides
 ## Known limitations
 
 - Local-only, unsynchronized data; no export/backup.
-- Items have no categories; editing replaces the name, amount and unit and keeps no history. Units are a fixed list (shown in the selected language, stored as language-independent ids) and are not converted or summed. Item names are never translated, and amounts always use "." as the decimal separator.
+- Editing items and categories keeps no history. Units are a fixed list (shown in the selected language, stored as language-independent ids) and are not converted or summed. Item and category names are never translated, and amounts always use "." as the decimal separator.
 - Removing items, including "Clear completed", is permanent: there is no undo or trash.
 - Native Android/iOS builds untested; Playwright covers Chromium only.
 - `npm audit` reports moderate advisories caused by Ionic 9's React Router 6 requirement and the Capacitor CLI's dev-only dependencies; see [docs/development.md](docs/development.md#known-dependency-advisories).
 
 ## Next recommended step
 
-Create the next OpenSpec change for the first planning feature (for example categories or recipes) now that the shopping list covers add, complete, rename, remove and clear completed.
+Create the next OpenSpec change for a planning feature, such as recipes.

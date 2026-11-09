@@ -2,6 +2,7 @@ import { AppDatabase } from '../../../infrastructure/persistence/app-database';
 import { PersistenceError } from '../../../shared/errors/persistence-error';
 import type { ShoppingItem } from '../domain/shopping-item';
 import { DexieShoppingItemStore } from './dexie-shopping-item-store';
+import Dexie from 'dexie';
 
 let counter = 0;
 const uniqueName = () => `test-db-${String(++counter)}`;
@@ -14,6 +15,65 @@ const milk: ShoppingItem = {
 };
 
 describe('DexieShoppingItemStore', () => {
+  it('upgrades a version 1 database without changing existing items', async () => {
+    const name = uniqueName();
+    const old = new Dexie(name);
+    old.version(1).stores({ shoppingItems: 'id, createdAt' });
+    await old.table('shoppingItems').add({ ...milk, amount: 2, unit: 'liter', completed: true });
+    old.close();
+    const db = new AppDatabase(name);
+    const store = new DexieShoppingItemStore(db);
+    expect(await store.getAll()).toEqual([{ ...milk, amount: 2, unit: 'liter', completed: true }]);
+    expect(await store.getCategories()).toEqual([]);
+    db.close();
+  });
+
+  it('persists categories, enforces unique names and rejects deletion while assigned', async () => {
+    const name = uniqueName();
+    const db = new AppDatabase(name);
+    const store = new DexieShoppingItemStore(db);
+    const category = { id: 'shop', name: 'Shop' };
+    expect(await store.saveCategory(category, true)).toEqual({ ok: true, value: category });
+    expect(await store.saveCategory({ id: 'other', name: 'SHOP' }, true)).toEqual({
+      ok: false,
+      error: 'duplicate',
+    });
+    expect(await store.save({ ...milk, categoryIds: ['shop'] })).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    expect(await store.deleteCategory('shop')).toEqual({ ok: false, error: 'in-use' });
+    db.close();
+    const reopened = new DexieShoppingItemStore(new AppDatabase(name));
+    expect(await reopened.getCategories()).toEqual([category]);
+    expect((await reopened.get('milk'))?.categoryIds).toEqual(['shop']);
+    await reopened.remove('milk');
+    expect(await reopened.deleteCategory('shop')).toEqual({ ok: true, value: category });
+    expect(await reopened.save({ ...milk, categoryIds: ['shop'] })).toEqual({
+      ok: false,
+      error: 'missing-category',
+    });
+  });
+
+  it('keeps references valid when category deletion races assignment', async () => {
+    const name = uniqueName();
+    const first = new DexieShoppingItemStore(new AppDatabase(name));
+    const second = new DexieShoppingItemStore(new AppDatabase(name));
+    await first.saveCategory({ id: 'shop', name: 'Shop' }, true);
+    const [saved, deleted] = await Promise.all([
+      first.save({ ...milk, categoryIds: ['shop'] }),
+      second.deleteCategory('shop'),
+    ]);
+    expect(saved.ok && deleted.ok).toBe(false);
+    const categories = await first.getCategories();
+    const items = await first.getAll();
+    expect(
+      items.every((item) =>
+        (item.categoryIds ?? []).every((id) => categories.some((category) => category.id === id)),
+      ),
+    ).toBe(true);
+  });
+
   it('saves, reads, updates and removes items', async () => {
     const store = new DexieShoppingItemStore(new AppDatabase(uniqueName()));
 
@@ -100,5 +160,10 @@ describe('DexieShoppingItemStore', () => {
     await expect(store.getAll()).rejects.toBeInstanceOf(PersistenceError);
     await expect(store.save(milk)).rejects.toBeInstanceOf(PersistenceError);
     await expect(store.removeMany(['milk'])).rejects.toBeInstanceOf(PersistenceError);
+    await expect(store.getCategories()).rejects.toBeInstanceOf(PersistenceError);
+    await expect(store.saveCategory({ id: 'a', name: 'Shop' }, true)).rejects.toBeInstanceOf(
+      PersistenceError,
+    );
+    await expect(store.deleteCategory('a')).rejects.toBeInstanceOf(PersistenceError);
   });
 });

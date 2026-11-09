@@ -5,14 +5,22 @@ import type { ItemErrors, ShoppingItem } from '../domain/shopping-item';
 import type { UpdateOutcome } from '../hooks/use-shopping-list';
 import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 import { QuantityFields } from './QuantityFields';
+import { CategoryFields } from './CategoryFields';
+import type { Category } from '../domain/category';
 
 interface EditItemFormProps {
   item: ShoppingItem;
-  onUpdate: (id: string, name: string, quantity: QuantityDraft) => Promise<UpdateOutcome>;
+  onUpdate: (
+    id: string,
+    name: string,
+    quantity: QuantityDraft,
+    categoryIds: readonly string[],
+  ) => Promise<UpdateOutcome>;
   onClose: () => void;
+  categories: readonly Category[];
 }
 
-export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
+export function EditItemForm({ item, onUpdate, onClose, categories }: EditItemFormProps) {
   const messages = useShoppingListMessages();
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState<QuantityDraft>({
@@ -21,6 +29,7 @@ export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
   });
   const [errors, setErrors] = useState<ItemErrors>({});
   const [saving, setSaving] = useState(false);
+  const [categoryIds, setCategoryIds] = useState<string[]>([...(item.categoryIds ?? [])]);
   const formRef = useRef<HTMLFormElement>(null);
   const errorId = `edit-item-error-${item.id}`;
 
@@ -44,7 +53,7 @@ export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setSaving(true);
-    const outcome = await onUpdate(item.id, name, quantity);
+    const outcome = await onUpdate(item.id, name, quantity, categoryIds);
     setSaving(false);
     if (outcome.status === 'invalid') {
       setErrors(outcome.errors);
@@ -86,6 +95,12 @@ export function EditItemForm({ item, onUpdate, onClose }: EditItemFormProps) {
         value={quantity}
         error={errors.quantity ?? null}
         onChange={setQuantity}
+      />
+      <CategoryFields
+        categories={categories}
+        selected={categoryIds}
+        onChange={setCategoryIds}
+        error={errors.categories}
       />
       <div className="edit-item-actions">
         <IonButton type="submit" size="small" disabled={saving}>

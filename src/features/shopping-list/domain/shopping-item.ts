@@ -7,6 +7,7 @@ import {
   type QuantityError,
 } from './quantity';
 import type { UnitId } from './units';
+import { distinctCategoryIds } from './category';
 
 export const MAX_ITEM_NAME_LENGTH = 100;
 
@@ -19,12 +20,14 @@ export interface ShoppingItem {
   readonly createdAt: Date;
   readonly amount?: number;
   readonly unit?: UnitId;
+  readonly categoryIds?: readonly string[];
 }
 
 /** Validation problems per field; a field is absent when it is valid. */
 export interface ItemErrors {
   readonly name?: ItemNameError;
   readonly quantity?: QuantityError;
+  readonly categories?: 'missing-category';
 }
 
 /** Trims the name and checks it is non-empty and within the length limit. */
@@ -59,6 +62,7 @@ export function createShoppingItem(
   id: string,
   createdAt: Date,
   quantityDraft: QuantityDraft = EMPTY_QUANTITY_DRAFT,
+  categoryIds: readonly string[] = [],
 ): Result<ShoppingItem, ItemErrors> {
   const details = parseDetails(rawName, quantityDraft);
   if (!details.ok) {
@@ -70,6 +74,7 @@ export function createShoppingItem(
     completed: false,
     createdAt,
     ...details.value.quantity,
+    ...(categoryIds.length > 0 ? { categoryIds: distinctCategoryIds(categoryIds) } : {}),
   });
 }
 
@@ -81,6 +86,7 @@ export function withDetails(
   item: ShoppingItem,
   rawName: string,
   quantityDraft: QuantityDraft,
+  categoryIds: readonly string[] = item.categoryIds ?? [],
 ): Result<ShoppingItem, ItemErrors> {
   const details = parseDetails(rawName, quantityDraft);
   if (!details.ok) {
@@ -92,6 +98,7 @@ export function withDetails(
     completed: item.completed,
     createdAt: item.createdAt,
     ...details.value.quantity,
+    ...(categoryIds.length > 0 ? { categoryIds: distinctCategoryIds(categoryIds) } : {}),
   });
 }
 

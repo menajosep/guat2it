@@ -55,7 +55,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.goto('/');
       await addItem(page, 'Milk');
       await page.getByLabel('Item name').fill('Bread');
-      const background = page.locator('ion-content').locator('#background-content');
+      const background = page.locator('#main-content ion-content').locator('#background-content');
       const before = await color(background, 'backgroundColor');
 
       await page.emulateMedia({ colorScheme: scheme === 'light' ? 'dark' : 'light' });
@@ -67,8 +67,8 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('renders readable text, controls, focus and feedback', async ({ page }) => {
       await page.goto('/');
-      const content = page.locator('ion-content').locator('#background-content');
-      const toolbar = page.locator('ion-toolbar').locator('.toolbar-background');
+      const content = page.locator('#main-content ion-content').locator('#background-content');
+      const toolbar = page.locator('#main-content ion-toolbar').locator('.toolbar-background');
       const nameInput = page.locator('ion-input').first();
       const inputOutline = nameInput.locator('.input-outline-start');
       const select = page.getByLabel('Unit', { exact: true });
@@ -77,7 +77,12 @@ for (const scheme of ['light', 'dark'] as const) {
       const buttonNative = page.locator('ion-button[type="submit"]').locator('button');
 
       await expect(inputOutline).toBeVisible();
-      await assertContrast(page.getByText('Shopping list', { exact: true }), 'color', toolbar, 4.5);
+      await assertContrast(
+        page.locator('#main-content').getByText('Shopping list', { exact: true }),
+        'color',
+        toolbar,
+        4.5,
+      );
       await assertContrast(nameInput.locator('.label-text'), 'color', content, 4.5);
       await assertContrast(page.locator('.unit-field label'), 'color', content, 4.5);
       await assertContrast(select, 'color', content, 4.5);
@@ -86,6 +91,11 @@ for (const scheme of ['light', 'dark'] as const) {
       await assertContrast(language, 'borderTopColor', toolbar, 3);
       await assertContrast(buttonNative, 'color', buttonNative, 4.5);
 
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('button', { name: 'Open menu' })).toBeFocused();
+      const menuButton = page.locator('ion-menu-button').locator('button');
+      await expect(menuButton).toHaveCSS('outline-style', 'solid');
+      await assertContrast(menuButton, 'outlineColor', toolbar, 3);
       await page.keyboard.press('Tab');
       await expect(language).toBeFocused();
       await expect(language).toHaveCSS('outline-style', 'solid');
@@ -111,7 +121,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(success).toBeVisible();
       await assertContrast(success, 'color', success, 4.5);
       const checkbox = page.getByRole('checkbox', { name: 'Milk' });
-      const itemBackground = page.locator('ion-item').first().locator('.item-native');
+      const itemBackground = page.locator('#main-content ion-item').first().locator('.item-native');
       const checkboxIcon = checkbox.locator('.checkbox-icon');
       await assertContrast(checkbox, 'color', itemBackground, 4.5);
       await assertContrast(checkboxIcon, 'borderTopColor', itemBackground, 3);

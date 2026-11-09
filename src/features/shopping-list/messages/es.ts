@@ -9,6 +9,13 @@ const completedItems = (count: number) =>
 
 export const es: ShoppingListMessages = {
   pageTitle: 'Lista de la compra',
+  navigation: {
+    menu: 'Menú',
+    openMenu: 'Abrir menú',
+    closeMenu: 'Cerrar menú',
+    shoppingList: 'Lista de la compra',
+    admin: 'Administración',
+  },
   loadingList: 'Cargando la lista de la compra',
   tryAgain: 'Reintentar',
   itemName: 'Nombre del artículo',
@@ -20,6 +27,22 @@ export const es: ShoppingListMessages = {
   removeItem: (name) => `Eliminar ${name}`,
   emptyList: 'Tu lista de la compra está vacía. Añade tu primer artículo arriba.',
   listLabel: 'Artículos de la compra',
+  categories: {
+    title: 'Gestionar categorías',
+    name: 'Nombre de la categoría',
+    add: 'Añadir categoría',
+    edit: (name) => `Editar categoría ${name}`,
+    remove: (name) => `Eliminar categoría ${name}`,
+    select: 'Categorías',
+    uncategorized: 'Sin categoría',
+    errors: {
+      empty: 'Introduce un nombre de categoría.',
+      'too-long': 'Los nombres de categoría pueden tener hasta 100 caracteres.',
+      duplicate: 'Ya existe una categoría con este nombre.',
+      'in-use': 'Quita esta categoría de todos los artículos antes de eliminarla.',
+      'missing-category': 'Una categoría seleccionada ya no existe. Actualiza la selección.',
+    },
+  },
   amount: (itemName) => (itemName === undefined ? 'Cantidad' : `Cantidad para ${itemName}`),
   unit: (itemName) => (itemName === undefined ? 'Unidad' : `Unidad para ${itemName}`),
   noUnit: 'Sin unidad',
@@ -76,6 +99,9 @@ export const es: ShoppingListMessages = {
     'amount-not-allowed': 'Esta unidad no lleva cantidad.',
   },
   storageFailures: {
+    'load-categories': 'No se pudieron cargar las categorías por un error de almacenamiento local.',
+    'save-category': 'No se pudo guardar la categoría por un error de almacenamiento local.',
+    'remove-category': 'No se pudo eliminar la categoría por un error de almacenamiento local.',
     'load-list': 'No se pudo cargar la lista de la compra porque falló el almacenamiento local.',
     'read-item': 'No se pudo leer el artículo porque falló el almacenamiento local.',
     'save-item': 'No se pudo guardar el artículo porque falló el almacenamiento local.',

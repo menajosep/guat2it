@@ -70,6 +70,67 @@
   gap: 0.5rem;
 }
 
+.category-fields {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+}
+
+.category-fields label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.category-fields input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--ion-color-primary);
+}
+
+.category-manager {
+  margin: 1rem 0;
+}
+
+.category-manager label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.category-manager input {
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  font: inherit;
+  color: var(--ion-text-color);
+  background: transparent;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+}
+
+.category-manager button {
+  min-height: 2.75rem;
+  margin: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--ion-color-primary-contrast);
+  background: var(--ion-color-primary);
+  border: 0;
+  border-radius: 4px;
+}
+
+.category-error {
+  color: var(--ion-color-danger);
+}
+
+.category-manager :is(input, button):focus-visible,
+.category-fields input:focus-visible {
+  outline: 3px solid var(--guat-focus-color);
+  outline-offset: 2px;
+}
+
 .feedback-region {
   position: fixed;
   left: 0;
@@ -214,6 +275,7 @@ ion-checkbox {
 ion-input:focus-within,
 ion-checkbox:focus-within,
 ion-button::part(native):focus-visible,
+ion-menu-button::part(native):focus-visible,
 :root ion-alert button:focus-visible,
 select:focus-visible {
   outline: 3px solid var(--guat-focus-color);

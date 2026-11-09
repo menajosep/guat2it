@@ -1,4 +1,5 @@
-import { ok, type Result } from '../../../shared/types/result';
+import { fail, ok, type Result } from '../../../shared/types/result';
+import { parseCategoryName, type Category, type CategoryNameError } from '../domain/category';
 import {
   completedItems,
   createShoppingItem,
@@ -29,13 +30,56 @@ export class ShoppingListService {
     return sortByCreation(await this.deps.store.getAll());
   }
 
+  async snapshot(): Promise<{ items: ShoppingItem[]; categories: Category[] }> {
+    const snapshot = await this.deps.store.getSnapshot();
+    return {
+      items: sortByCreation(snapshot.items),
+      categories: snapshot.categories.sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  }
+
+  async listCategories(): Promise<Category[]> {
+    return (await this.deps.store.getCategories()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createCategory(rawName: string): Promise<Result<Category, CategoryNameError>> {
+    const name = parseCategoryName(rawName);
+    if (!name.ok) return name;
+    const category = { id: this.deps.generateId(), name: name.value };
+    const saved = await this.deps.store.saveCategory(category, true);
+    if (!saved.ok) return saved;
+    if (!saved.value) throw new Error('New category was not saved');
+    return ok(saved.value);
+  }
+
+  async renameCategory(
+    id: string,
+    rawName: string,
+  ): Promise<Result<Category | undefined, CategoryNameError>> {
+    const name = parseCategoryName(rawName);
+    if (!name.ok) return name;
+    return this.deps.store.saveCategory({ id, name: name.value }, false);
+  }
+
+  async deleteCategory(id: string): Promise<Result<Category | undefined, 'in-use'>> {
+    return this.deps.store.deleteCategory(id);
+  }
+
   async addItem(
     rawName: string,
     quantity: QuantityDraft = EMPTY_QUANTITY_DRAFT,
+    categoryIds: readonly string[] = [],
   ): Promise<Result<ShoppingItem, ItemErrors>> {
-    const created = createShoppingItem(rawName, this.deps.generateId(), this.deps.now(), quantity);
+    const created = createShoppingItem(
+      rawName,
+      this.deps.generateId(),
+      this.deps.now(),
+      quantity,
+      categoryIds,
+    );
     if (created.ok) {
-      await this.deps.store.save(created.value);
+      const saved = await this.deps.store.save(created.value);
+      if (!saved.ok) return fail({ categories: saved.error });
     }
     return created;
   }
@@ -44,14 +88,18 @@ export class ShoppingListService {
    * Returns the updated item, or `undefined` when nothing changed: setting the state an item
    * already has is a no-op and an unknown id is ignored.
    */
-  async setCompleted(id: string, completed: boolean): Promise<ShoppingItem | undefined> {
+  async setCompleted(
+    id: string,
+    completed: boolean,
+  ): Promise<Result<ShoppingItem | undefined, 'missing-category'>> {
     const item = await this.deps.store.get(id);
     if (!item || item.completed === completed) {
-      return undefined;
+      return ok(undefined);
     }
     const updated = withCompleted(item, completed);
-    await this.deps.store.save(updated);
-    return updated;
+    const saved = await this.deps.store.save(updated);
+    if (!saved.ok) return saved;
+    return ok(updated);
   }
 
   /** Returns the removed item, or `undefined` when the id is unknown. */
@@ -81,20 +129,30 @@ export class ShoppingListService {
     id: string,
     rawName: string,
     quantity: QuantityDraft,
+    categoryIds?: readonly string[],
   ): Promise<Result<UpdateChange | undefined, ItemErrors>> {
     const item = await this.deps.store.get(id);
     if (!item) {
       return ok(undefined);
     }
-    const updated = withDetails(item, rawName, quantity);
+    const updated = withDetails(item, rawName, quantity, categoryIds);
     if (!updated.ok) {
       return updated;
     }
     const next = updated.value;
-    if (next.name === item.name && next.amount === item.amount && next.unit === item.unit) {
+    const oldIds = item.categoryIds ?? [];
+    const newIds = next.categoryIds ?? [];
+    if (
+      next.name === item.name &&
+      next.amount === item.amount &&
+      next.unit === item.unit &&
+      oldIds.length === newIds.length &&
+      oldIds.every((id) => newIds.includes(id))
+    ) {
       return ok(undefined);
     }
-    await this.deps.store.save(next);
+    const saved = await this.deps.store.save(next);
+    if (!saved.ok) return fail({ categories: saved.error });
     return ok({ previous: item, item: next });
   }
 }

@@ -1,9 +1,88 @@
 import { expect, test } from '@playwright/test';
 
+test('manages categories, groups shared items and preserves assignments on reload', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByText('Manage categories')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Admin', { exact: true }).click();
+  await expect(page.getByText('Manage categories')).toBeVisible();
+  for (const name of ['Butchery', 'Market']) {
+    await page.getByLabel('Category name').fill(name);
+    await page.getByRole('button', { name: 'Add category' }).click();
+    await expect(page.getByRole('button', { name: `Edit category ${name}` })).toBeVisible();
+  }
+  await page.getByRole('button', { name: 'Edit category Market' }).click();
+  await page.getByLabel('Category name').fill('Supermarket');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Edit category Supermarket' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Shopping list', { exact: true }).click();
+  await page.getByLabel('Item name').fill('Milk');
+  await page.getByRole('checkbox', { name: 'Butchery' }).check();
+  await page.getByRole('checkbox', { name: 'Supermarket' }).check();
+  await page.getByRole('button', { name: 'Add item' }).click();
+  const butchery = page.getByRole('region', { name: 'Butchery' });
+  const supermarket = page.getByRole('region', { name: 'Supermarket' });
+  await expect(butchery.getByRole('checkbox', { name: 'Milk' })).toBeVisible();
+  await expect(supermarket.getByRole('checkbox', { name: 'Milk' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Admin', { exact: true }).click();
+  await page.getByRole('button', { name: 'Delete category Butchery' }).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Remove this category from all items' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Edit category Butchery' }).click();
+  await page.getByLabel('Category name').fill('Butcher');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Shopping list', { exact: true }).click();
+  const butcher = page.getByRole('region', { name: 'Butcher' });
+  await expect(butcher.getByRole('checkbox', { name: 'Milk' })).toBeVisible();
+  await expect(butchery).toHaveCount(0);
+  await page.reload();
+  await expect(butcher.getByRole('checkbox', { name: 'Milk' })).toBeVisible();
+  await butcher.getByRole('checkbox', { name: 'Milk' }).click();
+  await expect(supermarket.getByRole('checkbox', { name: 'Milk' })).toBeChecked();
+  await page.getByRole('button', { name: 'Clear completed' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Clear completed items?' });
+  await expect(dialog).toContainText('1 completed item');
+  await dialog.getByRole('button', { name: 'Clear', exact: true }).click();
+  await expect(page.getByText(/shopping list is empty/i)).toBeVisible();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Admin', { exact: true }).click();
+  await page.getByRole('button', { name: 'Delete category Butcher' }).click();
+  await expect(page.getByRole('button', { name: 'Delete category Butcher' })).toHaveCount(0);
+});
+
+test('dismisses the menu and translates navigation in Admin on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await expect(page.locator('ion-menu')).toHaveClass(/show-menu/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('ion-menu')).not.toHaveClass(/show-menu/);
+  await expect(page.getByLabel('Item name')).toBeVisible();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Admin', { exact: true }).click();
+  await expect(page.getByText('Manage categories')).toBeVisible();
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('es');
+  await expect(page.getByText('Gestionar categorías')).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir menú' }).click();
+  await expect(page.locator('ion-menu').getByText('Lista de la compra')).toBeVisible();
+  await expect(page.locator('ion-menu').getByText('Administración')).toBeVisible();
+  await page.getByRole('button', { name: 'Cerrar menú' }).click();
+  await expect(page.locator('ion-menu')).not.toHaveClass(/show-menu/);
+  await expect(page.getByText('Gestionar categorías')).toBeVisible();
+});
+
 test('adds, completes and removes an item, and keeps it after a reload', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByText('Shopping list', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('#main-content').getByText('Shopping list', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText(/shopping list is empty/i)).toBeVisible();
 
   await page.getByLabel('Item name').fill('Milk');

@@ -6,6 +6,8 @@ import type { LanguageService } from '../features/language/application/language-
 import { ShoppingListServiceProvider } from '../features/shopping-list/hooks/shopping-list-service-context';
 import type { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 import { ShoppingListPage } from '../features/shopping-list/pages/ShoppingListPage';
+import { AdminPage } from '../features/shopping-list/pages/AdminPage';
+import { AppMenu } from './AppMenu';
 
 interface AppProps {
   shoppingListService: ShoppingListService;
@@ -18,8 +20,10 @@ export function App({ shoppingListService, languageService }: AppProps) {
       <LanguageProvider service={languageService}>
         <ShoppingListServiceProvider value={shoppingListService}>
           <IonReactRouter>
-            <IonRouterOutlet>
+            <AppMenu />
+            <IonRouterOutlet id="main-content">
               <Route path="/shopping-list" element={<ShoppingListPage />} />
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="*" element={<Navigate to="/shopping-list" replace />} />
             </IonRouterOutlet>
           </IonReactRouter>
