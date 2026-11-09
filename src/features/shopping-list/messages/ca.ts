@@ -9,6 +9,13 @@ const completedItems = (count: number) =>
 
 export const ca: ShoppingListMessages = {
   pageTitle: 'Llista de la compra',
+  navigation: {
+    menu: 'Menú',
+    openMenu: 'Obre el menú',
+    closeMenu: 'Tanca el menú',
+    shoppingList: 'Llista de la compra',
+    admin: 'Administració',
+  },
   loadingList: 'Carregant la llista de la compra',
   tryAgain: 'Torna-ho a provar',
   itemName: "Nom de l'article",
@@ -20,6 +27,22 @@ export const ca: ShoppingListMessages = {
   removeItem: (name) => `Elimina ${name}`,
   emptyList: 'La teva llista de la compra és buida. Afegeix-hi el primer article a dalt.',
   listLabel: 'Articles de la compra',
+  categories: {
+    title: 'Gestiona les categories',
+    name: 'Nom de la categoria',
+    add: 'Afegeix categoria',
+    edit: (name) => `Edita la categoria ${name}`,
+    remove: (name) => `Elimina la categoria ${name}`,
+    select: 'Categories',
+    uncategorized: 'Sense categoria',
+    errors: {
+      empty: 'Introdueix un nom de categoria.',
+      'too-long': 'Els noms de categoria poden tenir fins a 100 caràcters.',
+      duplicate: 'Ja existeix una categoria amb aquest nom.',
+      'in-use': 'Treu aquesta categoria de tots els articles abans d’eliminar-la.',
+      'missing-category': 'Una categoria seleccionada ja no existeix. Actualitza la selecció.',
+    },
+  },
   amount: (itemName) => (itemName === undefined ? 'Quantitat' : `Quantitat per a ${itemName}`),
   unit: (itemName) => (itemName === undefined ? 'Unitat' : `Unitat per a ${itemName}`),
   noUnit: 'Sense unitat',
@@ -76,6 +99,10 @@ export const ca: ShoppingListMessages = {
     'amount-not-allowed': 'Aquesta unitat no du quantitat.',
   },
   storageFailures: {
+    'load-categories':
+      "No s'han pogut carregar les categories per un error d'emmagatzematge local.",
+    'save-category': "No s'ha pogut desar la categoria per un error d'emmagatzematge local.",
+    'remove-category': "No s'ha pogut eliminar la categoria per un error d'emmagatzematge local.",
     'load-list':
       "No s'ha pogut carregar la llista de la compra perquè ha fallat l'emmagatzematge local.",
     'read-item': "No s'ha pogut llegir l'article perquè ha fallat l'emmagatzematge local.",

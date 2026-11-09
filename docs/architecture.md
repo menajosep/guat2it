@@ -34,6 +34,10 @@ ESLint forbids `domain/` and `application/` from importing React, Ionic, React R
 
 Expected failures (invalid names) are `Result` values and are shown next to the field; storage failures are thrown as `PersistenceError` and shown as dismissible feedback with `role="alert"`. Services report what actually changed (the affected item, or `undefined` for a no-op), which is what decides whether a success message is shown. Clearing completed items is one all-or-nothing storage operation (`removeMany`, a single Dexie transaction) behind a confirmation dialog in the UI.
 
+Categories are managed by the shopping-list service and stored independently by ID. Items contain zero or more category IDs; grouping is derived for display, so repeated rows represent one item and counts remain unique. Loading the two tables uses one read transaction for a consistent view. Saving assignments and deleting categories use transactions spanning both tables to prevent dangling references; duplicate category names are checked in the category write transaction.
+
+The app shell exposes a side menu for the shopping-list and Admin routes. Category management lives on Admin; item assignment remains on the list. Both pages use the same service and reload a snapshot when entered, so cached Ionic pages reflect changes made on the other screen. Admin is a local settings screen, not an authenticated role.
+
 ## Interface language
 
 The interface is available in English, Spanish and Catalan. Texts live in typed catalogs (`messages/en.ts`, `es.ts`, `ca.ts` in each feature) that must satisfy one interface, so a missing text fails type checking; tests also compare the three catalogs. Components read their texts through hooks (`useShoppingListMessages`), which pick the catalog of the active language from `useLanguage()`. Domain and application code never contain display text: validation returns error codes, units are stable ids, and `PersistenceError` carries an `action` that the UI words in the active language. The chosen language is stored in `localStorage` (not Dexie) because it is needed synchronously for the first render; `LanguageProvider` also keeps `<html lang>` in sync. Feedback messages are kept as text builders so a message already on screen switches language with the interface.
@@ -42,8 +46,8 @@ To add a text: add it to the feature's messages interface and to all three catal
 
 ## Data model
 
-`ShoppingItem { id: string (UUID), name: string (trimmed, 1-100 chars), completed: boolean, createdAt: Date }`.
-IndexedDB database `guat2it`, schema version 1, table `shoppingItems` (primary key `id`, index `createdAt`). Changing the schema requires a new `version()` in `app-database.ts`.
+`ShoppingItem { id, name, completed, createdAt, amount?, unit?, categoryIds? }` and `Category { id, name }`. Names are trimmed and limited to 100 characters; category names are unique ignoring case.
+IndexedDB database `guat2it`, schema version 2, has tables `shoppingItems` (primary key `id`, index `createdAt`) and `categories` (primary key `id`). Existing version 1 items are preserved and appear uncategorized. Changing the schema requires a new `version()` in `app-database.ts`.
 
 ## Persistence limits
 

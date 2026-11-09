@@ -3,15 +3,26 @@ import type { QuantityDraft } from '../domain/quantity';
 import type { ShoppingItem } from '../domain/shopping-item';
 import type { ShoppingItemStore } from './shopping-item-store';
 import { ShoppingListService } from './shopping-list-service';
+import { categoryNameKey, type Category } from '../domain/category';
+import { fail, ok, type Result } from '../../../shared/types/result';
 
 class InMemoryStore implements ShoppingItemStore {
   readonly items = new Map<string, ShoppingItem>();
+  readonly categories = new Map<string, Category>();
   failWith: Error | null = null;
 
   private check(): void {
     if (this.failWith) {
       throw this.failWith;
     }
+  }
+
+  getSnapshot(): Promise<{ items: ShoppingItem[]; categories: Category[] }> {
+    this.check();
+    return Promise.resolve({
+      items: [...this.items.values()],
+      categories: [...this.categories.values()],
+    });
   }
 
   getAll(): Promise<ShoppingItem[]> {
@@ -22,10 +33,13 @@ class InMemoryStore implements ShoppingItemStore {
     this.check();
     return Promise.resolve(this.items.get(id));
   }
-  save(item: ShoppingItem): Promise<void> {
+  save(item: ShoppingItem): Promise<Result<void, 'missing-category'>> {
     this.check();
+    if (item.categoryIds?.some((id) => !this.categories.has(id))) {
+      return Promise.resolve(fail('missing-category'));
+    }
     this.items.set(item.id, item);
-    return Promise.resolve();
+    return Promise.resolve(ok(undefined));
   }
   remove(id: string): Promise<void> {
     this.check();
@@ -36,6 +50,37 @@ class InMemoryStore implements ShoppingItemStore {
     this.check();
     ids.forEach((id) => this.items.delete(id));
     return Promise.resolve();
+  }
+  getCategories(): Promise<Category[]> {
+    this.check();
+    return Promise.resolve([...this.categories.values()]);
+  }
+  saveCategory(
+    category: Category,
+    create: boolean,
+  ): Promise<Result<Category | undefined, 'duplicate'>> {
+    this.check();
+    const previous = this.categories.get(category.id);
+    if (!create && !previous) return Promise.resolve(ok(undefined));
+    if (
+      [...this.categories.values()].some(
+        (entry) =>
+          entry.id !== category.id &&
+          categoryNameKey(entry.name) === categoryNameKey(category.name),
+      )
+    )
+      return Promise.resolve(fail('duplicate'));
+    if (previous?.name === category.name) return Promise.resolve(ok(undefined));
+    this.categories.set(category.id, category);
+    return Promise.resolve(ok(category));
+  }
+  deleteCategory(id: string): Promise<Result<Category | undefined, 'in-use'>> {
+    this.check();
+    const category = this.categories.get(id);
+    if ([...this.items.values()].some((item) => item.categoryIds?.includes(id)))
+      return Promise.resolve(fail('in-use'));
+    this.categories.delete(id);
+    return Promise.resolve(ok(category));
   }
 }
 
@@ -53,6 +98,41 @@ function setup() {
 }
 
 describe('ShoppingListService', () => {
+  it('manages categories and rejects duplicates and categories in use', async () => {
+    const { service } = setup();
+    expect(await service.createCategory('  ')).toEqual({ ok: false, error: 'empty' });
+    expect(await service.createCategory('x'.repeat(101))).toEqual({ ok: false, error: 'too-long' });
+    const category = await service.createCategory(' Butchery ');
+    if (!category.ok) throw new Error('expected category');
+    expect(category.value.name).toBe('Butchery');
+    expect(await service.createCategory('BUTCHERY')).toEqual({ ok: false, error: 'duplicate' });
+    expect(await service.renameCategory(category.value.id, 'Butchery')).toEqual({
+      ok: true,
+      value: undefined,
+    });
+    const item = await service.addItem('Milk', NO_QUANTITY, [category.value.id, category.value.id]);
+    if (!item.ok) throw new Error('expected item');
+    expect(item.value.categoryIds).toEqual([category.value.id]);
+    expect(await service.deleteCategory(category.value.id)).toEqual({ ok: false, error: 'in-use' });
+    expect(await service.renameCategory(category.value.id, 'Shop')).toMatchObject({
+      ok: true,
+      value: { name: 'Shop' },
+    });
+    expect((await service.list())[0]?.categoryIds).toEqual([category.value.id]);
+    expect(await service.updateItem(item.value.id, 'Milk', NO_QUANTITY, [])).toMatchObject({
+      ok: true,
+    });
+    expect(await service.deleteCategory(category.value.id)).toMatchObject({
+      ok: true,
+      value: { name: 'Shop' },
+    });
+    expect(await service.deleteCategory(category.value.id)).toEqual({ ok: true, value: undefined });
+    expect(await service.addItem('Bread', NO_QUANTITY, [category.value.id])).toEqual({
+      ok: false,
+      error: { categories: 'missing-category' },
+    });
+  });
+
   it('adds items and lists them in creation order', async () => {
     const { service } = setup();
     await service.addItem('Milk');
@@ -85,7 +165,7 @@ describe('ShoppingListService', () => {
 
   it('ignores completion changes for unknown items', async () => {
     const { service, store } = setup();
-    expect(await service.setCompleted('missing', true)).toBeUndefined();
+    expect(await service.setCompleted('missing', true)).toEqual({ ok: true, value: undefined });
     expect(store.items.size).toBe(0);
   });
 
@@ -94,12 +174,18 @@ describe('ShoppingListService', () => {
     const added = await service.addItem('Milk');
     if (!added.ok) throw new Error('expected item to be added');
 
-    expect(await service.setCompleted(added.value.id, false)).toBeUndefined();
-    expect(await service.setCompleted(added.value.id, true)).toMatchObject({
-      name: 'Milk',
-      completed: true,
+    expect(await service.setCompleted(added.value.id, false)).toEqual({
+      ok: true,
+      value: undefined,
     });
-    expect(await service.setCompleted(added.value.id, true)).toBeUndefined();
+    expect(await service.setCompleted(added.value.id, true)).toMatchObject({
+      ok: true,
+      value: { name: 'Milk', completed: true },
+    });
+    expect(await service.setCompleted(added.value.id, true)).toEqual({
+      ok: true,
+      value: undefined,
+    });
   });
 
   it('removes items and reports the removed one', async () => {

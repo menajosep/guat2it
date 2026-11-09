@@ -9,6 +9,13 @@ const completedItems = (count: number) =>
 
 export const en: ShoppingListMessages = {
   pageTitle: 'Shopping list',
+  navigation: {
+    menu: 'Menu',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    shoppingList: 'Shopping list',
+    admin: 'Admin',
+  },
   loadingList: 'Loading shopping list',
   tryAgain: 'Try again',
   itemName: 'Item name',
@@ -20,6 +27,22 @@ export const en: ShoppingListMessages = {
   removeItem: (name) => `Remove ${name}`,
   emptyList: 'Your shopping list is empty. Add your first item above.',
   listLabel: 'Shopping items',
+  categories: {
+    title: 'Manage categories',
+    name: 'Category name',
+    add: 'Add category',
+    edit: (name) => `Edit category ${name}`,
+    remove: (name) => `Delete category ${name}`,
+    select: 'Categories',
+    uncategorized: 'Uncategorized',
+    errors: {
+      empty: 'Enter a category name.',
+      'too-long': 'Category names can have at most 100 characters.',
+      duplicate: 'A category with this name already exists.',
+      'in-use': 'Remove this category from all items before deleting it.',
+      'missing-category': 'A selected category no longer exists. Update your selection.',
+    },
+  },
   amount: (itemName) => (itemName === undefined ? 'Amount' : `Amount for ${itemName}`),
   unit: (itemName) => (itemName === undefined ? 'Unit' : `Unit for ${itemName}`),
   noUnit: 'No unit',
@@ -76,6 +99,9 @@ export const en: ShoppingListMessages = {
     'amount-not-allowed': 'This unit takes no amount.',
   },
   storageFailures: {
+    'load-categories': 'Could not load categories because local storage failed.',
+    'save-category': 'Could not save the category because local storage failed.',
+    'remove-category': 'Could not remove the category because local storage failed.',
     'load-list': 'Could not load the shopping list because local storage failed.',
     'read-item': 'Could not read the item because local storage failed.',
     'save-item': 'Could not save the item because local storage failed.',

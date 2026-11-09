@@ -40,6 +40,22 @@ async function addItem(user: ReturnType<typeof userEvent.setup>, name: string) {
 
 type User = ReturnType<typeof userEvent.setup>;
 
+async function navigate(user: User, destination: 'Admin' | 'Shopping list', waitForContent = true) {
+  const trigger = document.querySelector<HTMLElement>(
+    '.ion-page:not(.ion-page-hidden) ion-menu-button',
+  );
+  if (!trigger) throw new Error('menu button not found');
+  await user.click(trigger);
+  const menu = screen.getByRole('navigation', { name: 'Menu' });
+  await waitFor(() => expect(menu).toHaveClass('show-menu'));
+  await user.click(within(menu).getByText(destination, { selector: 'ion-item' }));
+  await waitFor(() => expect(document.body).not.toHaveClass('backdrop-no-scroll'));
+  if (waitForContent) {
+    if (destination === 'Admin') await screen.findByText('Manage categories');
+    else await screen.findByText('Add item');
+  }
+}
+
 async function editForm(): Promise<HTMLElement> {
   return waitFor(() => {
     const form = document.querySelector<HTMLElement>('.edit-item-form');
@@ -155,7 +171,93 @@ async function chooseInDialog(user: User, dialog: HTMLElement, name: 'Cancel' | 
 }
 
 describe('shopping list', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('manages categories and groups a shared item without counting it twice', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderApp(uniqueDatabase('categories'));
+    await navigate(user, 'Admin');
+    const categoryName = screen.getByLabelText('Category name');
+    await user.type(categoryName, 'Butchery');
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await screen.findByRole('button', { name: 'Edit category Butchery' });
+    await user.type(categoryName, 'Market');
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await screen.findByRole('button', { name: 'Edit category Market' });
+
+    await user.type(categoryName, 'market');
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await expectAlert('A category with this name already exists.');
+    await user.clear(categoryName);
+
+    await navigate(user, 'Shopping list');
+    await user.click(screen.getByRole('checkbox', { name: 'Butchery' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Market' }));
+    await addItem(user, 'Milk');
+    const butcherGroup = await screen.findByRole('region', { name: 'Butchery' });
+    const marketGroup = screen.getByRole('region', { name: 'Market' });
+    expect(within(butcherGroup).getByText('Milk')).toBeInTheDocument();
+    expect(within(marketGroup).getByText('Milk')).toBeInTheDocument();
+    await navigate(user, 'Admin');
+    await user.click(screen.getByRole('button', { name: 'Delete category Butchery' }));
+    await expectAlert('Remove this category from all items before deleting it.');
+    await navigate(user, 'Shopping list');
+    const activeButcherGroup = await screen.findByRole('region', { name: 'Butchery' });
+    const activeMarketGroup = screen.getByRole('region', { name: 'Market' });
+    await user.click(within(activeButcherGroup).getByRole('checkbox', { hidden: true }));
+    await waitFor(() =>
+      expect(within(activeMarketGroup).getByText('Milk').closest('ion-checkbox')).toHaveClass(
+        'item-completed',
+      ),
+    );
+    const dialog = await openClearDialog(user);
+    expect(dialog).toHaveTextContent('This removes 1 completed item from the list.');
+    await chooseInDialog(user, dialog, 'Clear');
+    await waitFor(async () => {
+      expect(await service.list()).toHaveLength(0);
+    });
+    await navigate(user, 'Admin');
+    await user.click(screen.getByRole('button', { name: 'Delete category Butchery' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Delete category Butchery' }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it('edits category assignments and discards cancelled selections', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderApp(uniqueDatabase('category-edit'));
+    await navigate(user, 'Admin');
+    const field = screen.getByLabelText('Category name');
+    for (const name of ['Market', 'Butchery']) {
+      await user.type(field, name);
+      await user.click(screen.getByRole('button', { name: 'Add category' }));
+      await screen.findByRole('button', { name: `Edit category ${name}` });
+    }
+    await navigate(user, 'Shopping list');
+    await user.click(screen.getByRole('checkbox', { name: 'Market' }));
+    await addItem(user, 'Milk');
+    await screen.findByRole('region', { name: 'Market' });
+    await user.click(await rowButton('Milk', 'edit'));
+    let form = await editForm();
+    await user.click(within(form).getByRole('checkbox', { name: 'Butchery' }));
+    await user.click(within(form).getByText('Cancel'));
+    expect(screen.queryByRole('region', { name: 'Butchery' })).not.toBeInTheDocument();
+    await user.click(await rowButton('Milk', 'edit'));
+    form = await editForm();
+    await user.click(within(form).getByRole('checkbox', { name: 'Market' }));
+    await user.click(within(form).getByRole('checkbox', { name: 'Butchery' }));
+    await user.click(within(form).getByText('Save'));
+    await screen.findByRole('region', { name: 'Butchery' });
+    expect(screen.queryByRole('region', { name: 'Market' })).not.toBeInTheDocument();
+    const categories = await service.listCategories();
+    const butchery = categories.find((category) => category.name === 'Butchery');
+    expect((await service.list())[0]?.categoryIds).toEqual([butchery?.id]);
+  });
 
   it('supports the add, complete and remove flow', async () => {
     const user = userEvent.setup();
@@ -174,6 +276,7 @@ describe('shopping list', () => {
     await waitFor(() => {
       expect(milk()).toHaveClass('item-completed');
     });
+
     expect((await service.list())[0]?.completed).toBe(true);
 
     await user.click(checkbox);
@@ -185,6 +288,66 @@ describe('shopping list', () => {
     await user.click(await rowButton('Milk', 'remove'));
     expect(await screen.findByText(/shopping list is empty/i)).toBeInTheDocument();
     expect(await service.list()).toEqual([]);
+  });
+
+  it('keeps an item draft when a selected category is deleted before saving', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderApp(uniqueDatabase('category-deleted'));
+    await navigate(user, 'Admin');
+    await user.type(screen.getByLabelText('Category name'), 'Market');
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await navigate(user, 'Shopping list');
+    await user.click(await screen.findByRole('checkbox', { name: 'Market' }));
+    const category = (await service.listCategories())[0];
+    if (!category) throw new Error('expected category');
+    await service.deleteCategory(category.id);
+    await addItem(user, 'Milk');
+    await waitFor(() => {
+      expect(
+        screen
+          .getAllByText('A selected category no longer exists. Update your selection.')
+          .some((element) => element.closest('[role="alert"]')),
+      ).toBe(true);
+    });
+    expect(await service.list()).toEqual([]);
+    expect(await nameInput()).toHaveValue('Milk');
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'A selected category no longer exists. Update your selection.',
+      }),
+    );
+    await user.click(screen.getByText('Add item'));
+    await screen.findByText('Milk');
+    expect((await service.list())[0]?.categoryIds).toBeUndefined();
+  });
+
+  it('shows a retry when Admin cannot load categories', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderApp(uniqueDatabase('admin-load-failure'));
+    vi.spyOn(service, 'snapshot').mockRejectedValueOnce(
+      new PersistenceError('Storage unavailable'),
+    );
+    await navigate(user, 'Admin', false);
+    await expectAlert('Storage unavailable');
+    await user.click(screen.getByText('Try again'));
+    expect(await screen.findByText('Manage categories')).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
+  it('reports category save failures without discarding the draft', async () => {
+    const user = userEvent.setup();
+    const { service } = await renderApp(uniqueDatabase('category-failure'));
+    vi.spyOn(service, 'createCategory').mockRejectedValueOnce(
+      new PersistenceError('Could not save category.', { action: 'save-category' }),
+    );
+    await navigate(user, 'Admin');
+    const field = screen.getByLabelText('Category name');
+    await user.type(field, 'Market');
+    await user.click(screen.getByRole('button', { name: 'Add category' }));
+    await expectAlert('Could not save the category because local storage failed.');
+    expect(field).toHaveValue('Market');
+    expect(await service.listCategories()).toEqual([]);
+    vi.restoreAllMocks();
   });
 
   it('shows validation feedback for a blank name and clears it after a valid one', async () => {
@@ -610,7 +773,9 @@ describe('shopping list', () => {
   it('shows an error with a retry when loading fails', async () => {
     const user = userEvent.setup();
     const service = createShoppingListService(uniqueDatabase('error'));
-    const list = vi.spyOn(service, 'list').mockRejectedValueOnce(new Error('Storage unavailable'));
+    const list = vi
+      .spyOn(service, 'snapshot')
+      .mockRejectedValueOnce(new Error('Storage unavailable'));
     render(<App shoppingListService={service} languageService={createLanguageService()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Storage unavailable');
@@ -793,7 +958,7 @@ describe('shopping list', () => {
       await waitFor(() => {
         expect(screen.queryByText('500 grams')).not.toBeInTheDocument();
       });
-      expect(screen.getByText('Flour')).toBeInTheDocument();
+      expect(await screen.findByText('Flour')).toBeInTheDocument();
     });
 
     it('keeps the editor open and the item unchanged for an invalid quantity', async () => {

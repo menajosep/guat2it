@@ -5,27 +5,36 @@ import type { ItemErrors } from '../domain/shopping-item';
 import type { AddOutcome } from '../hooks/use-shopping-list';
 import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
 import { QuantityFields } from './QuantityFields';
+import { CategoryFields } from './CategoryFields';
+import type { Category } from '../domain/category';
 
 interface AddItemFormProps {
-  onAdd: (name: string, quantity: QuantityDraft) => Promise<AddOutcome>;
+  onAdd: (
+    name: string,
+    quantity: QuantityDraft,
+    categoryIds: readonly string[],
+  ) => Promise<AddOutcome>;
+  categories: readonly Category[];
 }
 
-export function AddItemForm({ onAdd }: AddItemFormProps) {
+export function AddItemForm({ onAdd, categories }: AddItemFormProps) {
   const messages = useShoppingListMessages();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState<QuantityDraft>(EMPTY_QUANTITY_DRAFT);
   const [errors, setErrors] = useState<ItemErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
 
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setSubmitting(true);
-    const outcome = await onAdd(name, quantity);
+    const outcome = await onAdd(name, quantity, categoryIds);
     setSubmitting(false);
     setErrors(outcome.status === 'invalid' ? outcome.errors : {});
     if (outcome.status === 'added') {
       setName('');
       setQuantity(EMPTY_QUANTITY_DRAFT);
+      setCategoryIds([]);
     }
   }
 
@@ -51,6 +60,12 @@ export function AddItemForm({ onAdd }: AddItemFormProps) {
         value={quantity}
         error={errors.quantity ?? null}
         onChange={setQuantity}
+      />
+      <CategoryFields
+        categories={categories}
+        selected={categoryIds}
+        onChange={setCategoryIds}
+        error={errors.categories}
       />
       <IonButton type="submit" expand="block" disabled={submitting}>
         {messages.addItem}

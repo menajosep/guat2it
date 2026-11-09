@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useIonViewWillEnter } from '@ionic/react';
 import { PersistenceError } from '../../../shared/errors/persistence-error';
+import type { Category, CategoryNameError } from '../domain/category';
 import { EMPTY_QUANTITY_DRAFT, type QuantityDraft } from '../domain/quantity';
 import type { ItemErrors, ShoppingItem } from '../domain/shopping-item';
 import type { ShoppingListMessages } from '../messages';
@@ -27,6 +29,7 @@ export interface Feedback {
 
 export interface ShoppingListState {
   items: ShoppingItem[];
+  categories: Category[];
   status: LoadStatus;
   /** Latest load failure, shown until the next successful load. */
   errorMessage: string | null;
@@ -34,12 +37,28 @@ export interface ShoppingListState {
   feedback: Feedback | null;
   dismissFeedback: () => void;
   reload: () => Promise<void>;
-  addItem: (name: string, quantity?: QuantityDraft) => Promise<AddOutcome>;
+  addItem: (
+    name: string,
+    quantity?: QuantityDraft,
+    categoryIds?: readonly string[],
+  ) => Promise<AddOutcome>;
   setCompleted: (id: string, completed: boolean) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
-  updateItem: (id: string, name: string, quantity: QuantityDraft) => Promise<UpdateOutcome>;
+  updateItem: (
+    id: string,
+    name: string,
+    quantity: QuantityDraft,
+    categoryIds?: readonly string[],
+  ) => Promise<UpdateOutcome>;
   clearCompleted: () => Promise<void>;
+  createCategory: (name: string) => Promise<CategoryOutcome>;
+  renameCategory: (id: string, name: string) => Promise<CategoryOutcome>;
+  deleteCategory: (id: string) => Promise<CategoryOutcome>;
 }
+
+export type CategoryOutcome =
+  | { status: 'saved' | 'unchanged' | 'failed' }
+  | { status: 'invalid'; error: CategoryNameError | 'in-use' };
 
 type MutationResult<T> = { failed: true } | { failed: false; value: T };
 
@@ -68,6 +87,7 @@ interface FeedbackSource {
 export function useShoppingList(): ShoppingListState {
   const service = useShoppingListService();
   const [items, setItems] = useState<ShoppingItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const messages = useShoppingListMessages();
   const [loadFailure, setLoadFailure] = useState<MessageText | null>(null);
@@ -94,8 +114,10 @@ export function useShoppingList(): ShoppingListState {
     setFeedbackSource(null);
   }, []);
 
-  const showLoaded = useCallback((loaded: ShoppingItem[]) => {
-    setItems(loaded);
+  const load = useCallback(() => service.snapshot(), [service]);
+  const showLoaded = useCallback((loaded: { items: ShoppingItem[]; categories: Category[] }) => {
+    setItems(loaded.items);
+    setCategories(loaded.categories);
     setStatus('ready');
     setLoadFailure(null);
   }, []);
@@ -108,26 +130,15 @@ export function useShoppingList(): ShoppingListState {
   const reload = useCallback(async () => {
     setStatus('loading');
     try {
-      showLoaded(await service.list());
+      showLoaded(await load());
     } catch (error) {
       showLoadFailure(error);
     }
-  }, [service, showLoaded, showLoadFailure]);
+  }, [load, showLoaded, showLoadFailure]);
 
-  useEffect(() => {
-    let active = true;
-    service.list().then(
-      (loaded) => {
-        if (active) showLoaded(loaded);
-      },
-      (error: unknown) => {
-        if (active) showLoadFailure(error);
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [service, showLoaded, showLoadFailure]);
+  useIonViewWillEnter(() => {
+    void reload();
+  }, [reload]);
 
   // Runs a mutation, then re-reads the stored list so the UI always reflects persisted data.
   // A storage failure is reported to the user as error feedback.
@@ -135,19 +146,25 @@ export function useShoppingList(): ShoppingListState {
     async <T>(operation: () => Promise<T>): Promise<MutationResult<T>> => {
       try {
         const value = await operation();
-        setItems(await service.list());
+        const loaded = await load();
+        setItems(loaded.items);
+        setCategories(loaded.categories);
         return { failed: false, value };
       } catch (error) {
         announce('error', describe(error));
         return { failed: true };
       }
     },
-    [service, announce],
+    [load, announce],
   );
 
   const addItem = useCallback(
-    async (name: string, quantity: QuantityDraft = EMPTY_QUANTITY_DRAFT): Promise<AddOutcome> => {
-      const result = await mutate(() => service.addItem(name, quantity));
+    async (
+      name: string,
+      quantity: QuantityDraft = EMPTY_QUANTITY_DRAFT,
+      categoryIds: readonly string[] = [],
+    ): Promise<AddOutcome> => {
+      const result = await mutate(() => service.addItem(name, quantity, categoryIds));
       if (result.failed) return { status: 'failed' };
       if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
       const { name: addedName } = result.value.value;
@@ -160,8 +177,13 @@ export function useShoppingList(): ShoppingListState {
   const setCompleted = useCallback(
     async (id: string, completed: boolean) => {
       const result = await mutate(() => service.setCompleted(id, completed));
-      if (result.failed || !result.value) return;
-      const { name } = result.value;
+      if (result.failed) return;
+      if (!result.value.ok) {
+        announce('error', (m) => m.categories.errors['missing-category']);
+        return;
+      }
+      if (!result.value.value) return;
+      const { name } = result.value.value;
       announce('success', (m) =>
         completed ? m.feedback.completed(name) : m.feedback.reactivated(name),
       );
@@ -180,8 +202,13 @@ export function useShoppingList(): ShoppingListState {
   );
 
   const updateItem = useCallback(
-    async (id: string, name: string, quantity: QuantityDraft): Promise<UpdateOutcome> => {
-      const result = await mutate(() => service.updateItem(id, name, quantity));
+    async (
+      id: string,
+      name: string,
+      quantity: QuantityDraft,
+      categoryIds?: readonly string[],
+    ): Promise<UpdateOutcome> => {
+      const result = await mutate(() => service.updateItem(id, name, quantity, categoryIds));
       if (result.failed) return { status: 'failed' };
       if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
       const change = result.value.value;
@@ -204,8 +231,39 @@ export function useShoppingList(): ShoppingListState {
     announce('success', (m) => m.feedback.cleared(cleared));
   }, [mutate, service, announce]);
 
+  const createCategory = useCallback(
+    async (name: string): Promise<CategoryOutcome> => {
+      const result = await mutate(() => service.createCategory(name));
+      if (result.failed) return { status: 'failed' };
+      if (!result.value.ok) return { status: 'invalid', error: result.value.error };
+      return { status: 'saved' };
+    },
+    [mutate, service],
+  );
+
+  const renameCategory = useCallback(
+    async (id: string, name: string): Promise<CategoryOutcome> => {
+      const result = await mutate(() => service.renameCategory(id, name));
+      if (result.failed) return { status: 'failed' };
+      if (!result.value.ok) return { status: 'invalid', error: result.value.error };
+      return { status: result.value.value ? 'saved' : 'unchanged' };
+    },
+    [mutate, service],
+  );
+
+  const deleteCategory = useCallback(
+    async (id: string): Promise<CategoryOutcome> => {
+      const result = await mutate(() => service.deleteCategory(id));
+      if (result.failed) return { status: 'failed' };
+      if (!result.value.ok) return { status: 'invalid', error: result.value.error };
+      return { status: result.value.value ? 'saved' : 'unchanged' };
+    },
+    [mutate, service],
+  );
+
   return {
     items,
+    categories,
     status,
     errorMessage,
     feedback,
@@ -216,5 +274,8 @@ export function useShoppingList(): ShoppingListState {
     removeItem,
     updateItem,
     clearCompleted,
+    createCategory,
+    renameCategory,
+    deleteCategory,
   };
 }

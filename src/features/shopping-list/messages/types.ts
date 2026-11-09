@@ -10,6 +10,13 @@ export interface UnitLabel {
 
 export interface ShoppingListMessages {
   readonly pageTitle: string;
+  readonly navigation: {
+    readonly menu: string;
+    readonly openMenu: string;
+    readonly closeMenu: string;
+    readonly shoppingList: string;
+    readonly admin: string;
+  };
   readonly loadingList: string;
   readonly tryAgain: string;
   readonly itemName: string;
@@ -21,6 +28,18 @@ export interface ShoppingListMessages {
   readonly removeItem: (name: string) => string;
   readonly emptyList: string;
   readonly listLabel: string;
+  readonly categories: {
+    readonly title: string;
+    readonly name: string;
+    readonly add: string;
+    readonly edit: (name: string) => string;
+    readonly remove: (name: string) => string;
+    readonly select: string;
+    readonly uncategorized: string;
+    readonly errors: Readonly<
+      Record<'empty' | 'too-long' | 'duplicate' | 'in-use' | 'missing-category', string>
+    >;
+  };
   readonly amount: (itemName?: string) => string;
   readonly unit: (itemName?: string) => string;
   readonly noUnit: string;
