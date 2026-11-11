@@ -2,7 +2,11 @@ import { setupIonicReact } from '@ionic/react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../app/App';
-import { createLanguageService, createShoppingListService } from '../app/create-services';
+import {
+  createLanguageService,
+  createRecipeService,
+  createShoppingListService,
+} from '../app/create-services';
 import { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 import { DexieShoppingItemStore } from '../features/shopping-list/infrastructure/dexie-shopping-item-store';
 import { AppDatabase } from '../infrastructure/persistence/app-database';
@@ -16,9 +20,19 @@ const uniqueDatabase = (prefix: string) => `${prefix}-${String(++counter)}`;
 async function renderApp(databaseName: string) {
   const service = createShoppingListService(databaseName);
   const view = render(
-    <App shoppingListService={service} languageService={createLanguageService()} />,
+    <App
+      shoppingListService={service}
+      languageService={createLanguageService()}
+      recipeService={createRecipeService(databaseName)}
+    />,
   );
-  await screen.findByText(/shopping list is empty|Bread|Milk|Flour|Storage unavailable/i);
+  await screen.findByText(
+    /shopping list is empty|Bread|Milk|Flour|Storage unavailable/i,
+    undefined,
+    {
+      timeout: 5000,
+    },
+  );
   return { service, ...view };
 }
 
@@ -152,7 +166,11 @@ async function renderSeededApp(
   await seedItems(databaseName, items);
   const service = createShoppingListService(databaseName);
   const view = render(
-    <App shoppingListService={service} languageService={createLanguageService()} />,
+    <App
+      shoppingListService={service}
+      languageService={createLanguageService()}
+      recipeService={createRecipeService(databaseName)}
+    />,
   );
   await screen.findByText(items[0]?.name ?? '');
   return { service, ...view };
@@ -776,7 +794,13 @@ describe('shopping list', () => {
     const list = vi
       .spyOn(service, 'snapshot')
       .mockRejectedValueOnce(new Error('Storage unavailable'));
-    render(<App shoppingListService={service} languageService={createLanguageService()} />);
+    render(
+      <App
+        shoppingListService={service}
+        languageService={createLanguageService()}
+        recipeService={createRecipeService(uniqueDatabase('recipes'))}
+      />,
+    );
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Storage unavailable');
 

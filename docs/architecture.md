@@ -1,6 +1,6 @@
 # Architecture
 
-Guat2it is a modular monolith: one TypeScript code base, organized by feature, with business rules kept separate from persistence and UI. It currently contains two features: the shopping list and the interface language.
+Guat2it is a modular monolith: one TypeScript code base, organized by feature, with business rules kept separate from persistence and UI. It contains shopping list, recipes and interface language features.
 
 ## Layers and dependency direction
 
@@ -11,17 +11,18 @@ infrastructure (Dexie)  ----implements---+
 src/app (composition root) wires infrastructure into application
 ```
 
-| Location                                           | Responsibility                                                                                                                                                                                                                                    | May import                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `src/features/shopping-list/domain/`               | Entity type, name validation, creation, rename, completion, ordering. Pure.                                                                                                                                                                       | `src/shared`                              |
-| `src/features/shopping-list/application/`          | `ShoppingListService` (use cases) and the `ShoppingItemStore` port.                                                                                                                                                                               | domain, `src/shared`                      |
-| `src/features/shopping-list/infrastructure/`       | `DexieShoppingItemStore`, the port implementation. Wraps failures.                                                                                                                                                                                | application, domain, `src/infrastructure` |
-| `src/features/shopping-list/hooks/`                | React hooks and context exposing the service and UI state (`useShoppingList`).                                                                                                                                                                    | application, domain                       |
-| `src/features/shopping-list/components/`, `pages/` | Ionic UI. Rendering and interaction only.                                                                                                                                                                                                         | hooks, domain types                       |
-| `src/features/language/`                           | Supported languages and detection (`domain`), `LanguageService` and its `LanguagePreferenceStore` port (`application`), the `localStorage` adapter (`infrastructure`), `LanguageProvider`/`useLanguage` and the selector (`hooks`, `components`). | shared, React/Ionic in UI only            |
-| `src/infrastructure/persistence/`                  | Shared Dexie `AppDatabase` (schema and versions).                                                                                                                                                                                                 | domain types                              |
-| `src/app/`                                         | `App` shell and routes; `create-services.ts` composition root.                                                                                                                                                                                    | everything                                |
-| `src/shared/`                                      | `Result`, `PersistenceError`, `generateId`.                                                                                                                                                                                                       | nothing                                   |
+| Location                                           | Responsibility                                                                                                                                                                                                                                    | May import                                           |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `src/features/shopping-list/domain/`               | Entity type, name validation, creation, rename, completion, ordering. Pure.                                                                                                                                                                       | `src/shared`                                         |
+| `src/features/shopping-list/application/`          | `ShoppingListService` (use cases) and the `ShoppingItemStore` port.                                                                                                                                                                               | domain, `src/shared`                                 |
+| `src/features/shopping-list/infrastructure/`       | `DexieShoppingItemStore`, the port implementation. Wraps failures.                                                                                                                                                                                | application, domain, `src/infrastructure`            |
+| `src/features/shopping-list/hooks/`                | React hooks and context exposing the service and UI state (`useShoppingList`).                                                                                                                                                                    | application, domain                                  |
+| `src/features/shopping-list/components/`, `pages/` | Ionic UI. Rendering and interaction only.                                                                                                                                                                                                         | hooks, domain types                                  |
+| `src/features/language/`                           | Supported languages and detection (`domain`), `LanguageService` and its `LanguagePreferenceStore` port (`application`), the `localStorage` adapter (`infrastructure`), `LanguageProvider`/`useLanguage` and the selector (`hooks`, `components`). | shared, React/Ionic in UI only                       |
+| `src/features/recipes/`                            | Recipe validation and ingredient mapping, local import service and ports, JSON-LD extraction, Dexie adapter, and recipe UI.                                                                                                                       | shared, shopping-list domain, React/Ionic in UI only |
+| `src/infrastructure/persistence/`                  | Shared Dexie `AppDatabase` (schema and versions).                                                                                                                                                                                                 | domain types                                         |
+| `src/app/`                                         | `App` shell and routes; `create-services.ts` composition root.                                                                                                                                                                                    | everything                                           |
+| `src/shared/`                                      | `Result`, `PersistenceError`, `generateId`.                                                                                                                                                                                                       | nothing                                              |
 
 ESLint forbids `domain/` and `application/` from importing React, Ionic, React Router or Dexie.
 
@@ -36,7 +37,9 @@ Expected failures (invalid names) are `Result` values and are shown next to the 
 
 Categories are managed by the shopping-list service and stored independently by ID. Items contain zero or more category IDs; grouping is derived for display, so repeated rows represent one item and counts remain unique. Loading the two tables uses one read transaction for a consistent view. Saving assignments and deleting categories use transactions spanning both tables to prevent dangling references; duplicate category names are checked in the category write transaction.
 
-The app shell exposes a side menu for the shopping-list and Admin routes. Category management lives on Admin; item assignment remains on the list. Both pages use the same service and reload a snapshot when entered, so cached Ionic pages reflect changes made on the other screen. Admin is a local settings screen, not an authenticated role.
+The app shell exposes a side menu for the shopping-list, Recipes and Admin routes. Category management lives on Admin; item assignment remains on the list. Shopping and Admin pages use the same service and reload a snapshot when entered, so cached Ionic pages reflect changes made on the other screen. Admin is a local settings screen, not an authenticated role.
+
+Recipe import processes a user-supplied URL and pasted source locally, using a size-limited application service and an inert JSON-LD extractor. The review draft preserves unresolved ingredient text; validated ingredients reuse shopping-list name and quantity rules. A complete recipe is written as one record, and errors retain the draft. Pictures are remote HTTPS references, not offline copies; imported text is never rendered as HTML.
 
 ## Interface language
 
@@ -46,8 +49,8 @@ To add a text: add it to the feature's messages interface and to all three catal
 
 ## Data model
 
-`ShoppingItem { id, name, completed, createdAt, amount?, unit?, categoryIds? }` and `Category { id, name }`. Names are trimmed and limited to 100 characters; category names are unique ignoring case.
-IndexedDB database `guat2it`, schema version 2, has tables `shoppingItems` (primary key `id`, index `createdAt`) and `categories` (primary key `id`). Existing version 1 items are preserved and appear uncategorized. Changing the schema requires a new `version()` in `app-database.ts`.
+`ShoppingItem { id, name, completed, createdAt, amount?, unit?, categoryIds? }` and `Category { id, name }`. Names are trimmed and limited to 100 characters; category names are unique ignoring case. `Recipe` contains an ID, source URL, title, yield, ordered ingredients, instructions and image URL. Ingredients use compatible names, amounts and units without sharing shopping-item lifecycle fields.
+IndexedDB database `guat2it`, schema version 3, has tables `shoppingItems` (primary key `id`, index `createdAt`), `categories` and `recipes` (primary key `id`). Existing items and categories are preserved, and version 1 items appear uncategorized. Changing the schema requires a new `version()` in `app-database.ts`.
 
 ## Persistence limits
 

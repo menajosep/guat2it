@@ -2,7 +2,11 @@ import { setupIonicReact } from '@ionic/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
-import { createLanguageService, createShoppingListService } from './app/create-services';
+import {
+  createLanguageService,
+  createRecipeService,
+  createShoppingListService,
+} from './app/create-services';
 
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -26,6 +30,7 @@ createRoot(container).render(
     <App
       shoppingListService={createShoppingListService()}
       languageService={createLanguageService()}
+      recipeService={createRecipeService()}
     />
   </StrictMode>,
 );

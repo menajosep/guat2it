@@ -3,6 +3,61 @@
   margin: 0 auto;
 }
 
+.recipes form > label,
+.recipes fieldset > label {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.recipes input:not([type='checkbox']),
+.recipes textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  font: inherit;
+  color: var(--ion-text-color);
+  background: transparent;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+}
+
+.recipes textarea {
+  min-height: 8rem;
+}
+
+.recipes button {
+  min-height: 2.75rem;
+  margin: 0.5rem 0.5rem 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: var(--ion-color-primary-contrast);
+  background: var(--ion-color-primary);
+  border: 0;
+  border-radius: 4px;
+}
+
+.recipes fieldset {
+  min-width: 0;
+  margin: 1rem 0;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+}
+
+.recipes img {
+  max-width: 100%;
+  height: auto;
+}
+
+.recipes [role='alert'] {
+  color: var(--ion-color-danger);
+}
+
+.recipes :is(input, textarea, select, button):focus-visible {
+  outline: 3px solid var(--guat-focus-color);
+  outline-offset: 2px;
+}
+
 .add-item-form {
   margin-bottom: 1rem;
 }

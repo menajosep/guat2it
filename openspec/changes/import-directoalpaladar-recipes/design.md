@@ -6,7 +6,7 @@ The app has a local shopping list, category administration and localized navigat
 
 **Goals:**
 
-- Import and review both example recipes on native and web, keeping recipe content on the device.
+- Import and review both example recipes via URL on native and pasted page source on web, keeping saved recipe content on the device.
 - Store ingredient details in a format compatible with shopping-item name and quantity rules.
 - Preserve existing lists and categories, provide localized accessible interaction, and expose errors.
 
@@ -17,11 +17,11 @@ The app has a local shopping list, category administration and localized navigat
 
 ## Decisions
 
-### Platform-aware acquisition
+### Platform-aware page-source acquisition
 
-On Android and iOS, acquire a user-supplied HTTPS Directo al Paladar URL through a native HTTP adapter behind an application port. On web, ask the user to paste the page source and identify its original Directo al Paladar URL; parse it locally. Explain the fallback in the UI and documentation. Validate the scheme and exact allowed host, reject credentials and nonstandard ports, and validate every redirect target before following it; surface network, HTTP and redirect failures. Fetch only after a user action, with bounded response size and timeout.
+On Android and iOS, download the source for a user-supplied URL with a locally maintained Capacitor plugin that reads the response incrementally and stops at 5 MiB. On the web, ask the user to paste page source and identify its original URL; parse it locally with the same 5 MiB limit. Validate HTTPS, exact allowed hosts, credentials and ports before any native request and before following each redirect; disable automatic redirects, limit redirect hops and bound connection and overall request time. Report network, HTTP, redirect and oversized-response errors. The plugin also validates request targets at the native boundary.
 
-Alternatives: browser fetch alone fails without source CORS permission; a hosted proxy conflicts with the no-backend constraint and exposes user requests to another service. Pasting rendered page text is more convenient but cannot reliably distinguish recipe fields.
+Alternatives: browser fetch alone fails without source CORS permission; a hosted proxy conflicts with the no-backend constraint and exposes user requests to another service. Capacitor's built-in native HTTP API buffers responses without enforcing a download-size limit. The user chose a local streaming plugin to retain native URL-only import. Pasting rendered page text cannot reliably distinguish recipe fields.
 
 ### Structured metadata and safe review
 
@@ -44,9 +44,9 @@ Add a Recipes menu destination and local list/detail/review screens within the e
 ## Risks / Trade-offs
 
 - [The source changes its metadata or removes fields] → Fail visibly, preserve the draft where possible and cover both representative structures with fixtures.
-- [Page-source paste is cumbersome] → Give concise platform-specific instructions; do not imply that URL-only web import works.
+- [Page-source paste is cumbersome on web] → Give concise instructions; do not imply that URL-only web import works.
 - [Source image disappears or is unreachable] → Keep the saved recipe and show an image fallback; document online dependency.
-- [Native networking differs by platform or redirect] → Exercise actual Android and iOS acquisition where available, and separately test adapter failures and redirect validation.
+- [Native networking differs by platform] → Test redirect, timeout, response-size and network failure handling, and exercise both native platforms where available.
 - [Ingredient text is ambiguous] → Require review rather than silently coercing it; retain original text until the user resolves it.
 
 ## Migration Plan
@@ -55,4 +55,4 @@ Add a new schema version without modifying existing shopping-item or category re
 
 ## Open Questions
 
-- None blocking the proposal. Verify the native HTTP mechanism and actual device behavior during implementation; do not claim native support until tested.
+- Verify native downloads on Android and iOS during implementation; report unavailable device verification.

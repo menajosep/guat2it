@@ -2,12 +2,12 @@
 
 ### Requirement: Acquire a supported recipe
 
-The system SHALL offer recipe import from HTTPS Directo al Paladar recipe pages. On Android and iOS the user SHALL supply the recipe URL; on the web the user SHALL supply the URL and paste the corresponding page source for local processing. Only the exact `www.directoalpaladar.com` or `directoalpaladar.com` host without credentials or a nonstandard port SHALL be accepted. Invalid URLs, unsupported sources, acquisition failures and pages without a usable recipe MUST produce a specific accessible error and MUST NOT create a recipe.
+The system SHALL offer recipe import from HTTPS Directo al Paladar recipe pages. On Android and iOS the user SHALL supply a URL and the app SHALL download the page; on web the user SHALL supply the URL and paste the corresponding page source for local processing. Only the exact `www.directoalpaladar.com` or `directoalpaladar.com` host without credentials or a nonstandard port SHALL be accepted, including redirects. Downloads and pasted input MUST be limited to 5 MiB. Invalid URLs, unsupported sources, network or HTTP errors, unsafe redirects, oversized input and pages without a usable recipe MUST produce a specific accessible error and MUST NOT create a recipe.
 
 #### Scenario: Native import
 
-- **WHEN** a user on Android or iOS submits a valid URL for either example recipe from issue #11 and the source is available
-- **THEN** the recipe is acquired and presented for review
+- **WHEN** a user on Android or iOS supplies a valid URL for either example recipe from issue #11 and the source is available
+- **THEN** the app downloads the page and presents the extracted recipe for review without requiring pasted source
 
 #### Scenario: Web import
 
@@ -16,13 +16,13 @@ The system SHALL offer recipe import from HTTPS Directo al Paladar recipe pages.
 
 #### Scenario: Unsupported or unavailable source
 
-- **WHEN** the URL is unsupported, the request fails or the pasted source does not contain a usable recipe
+- **WHEN** the URL is unsupported, the pasted source is too large or it does not contain a usable recipe
 - **THEN** an explanation is announced and no recipe is saved
 
-#### Scenario: Redirect to an unsupported host
+#### Scenario: Unsafe redirect or download failure
 
-- **WHEN** a native import redirects to an unsupported URL
-- **THEN** the redirect is rejected and an explanation is shown
+- **WHEN** a native download fails, exceeds the size limit or redirects to an unsupported URL
+- **THEN** an explanation is announced and no recipe is saved
 
 ### Requirement: Review and save complete recipes
 

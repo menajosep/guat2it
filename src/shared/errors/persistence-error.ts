@@ -6,7 +6,10 @@ export type PersistenceAction =
   | 'remove-items'
   | 'load-categories'
   | 'save-category'
-  | 'remove-category';
+  | 'remove-category'
+  | 'load-recipes'
+  | 'read-recipe'
+  | 'save-recipe';
 
 /** Failure of the storage layer (unavailable, quota exceeded, blocked, ...). */
 export class PersistenceError extends Error {

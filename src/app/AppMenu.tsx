@@ -79,6 +79,11 @@ export function AppMenu() {
             </IonItem>
           </IonMenuToggle>
           <IonMenuToggle autoHide={false}>
+            <IonItem routerLink="/recipes" routerDirection="root">
+              {messages.navigation.recipes}
+            </IonItem>
+          </IonMenuToggle>
+          <IonMenuToggle autoHide={false}>
             <IonItem routerLink="/admin" routerDirection="root">
               {messages.navigation.admin}
             </IonItem>

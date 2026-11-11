@@ -4,13 +4,21 @@ A personal meal-planning app that will grow, one OpenSpec change at a time, from
 
 ## Current scope
 
-Implemented: a **local shopping list** — add items with an optional amount, unit and multiple categories, mark them completed/active, edit them inline, remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages and empty/loading/error states. Use the toolbar menu to switch between **Shopping list** and **Admin**, where categories can be created, renamed and deleted without a login. Items appear in each assigned category, and items without one appear under Uncategorized. A category in use cannot be deleted until it is removed from all items. The interface is available in **English, Spanish and Catalan**: pick the language in either screen's toolbar; the choice is remembered on the device, and the first launch follows the device language when supported.
+Implemented: a **local shopping list** — add items with an optional amount, unit and multiple categories, mark them completed/active, edit them inline, remove them one by one or clear all completed items at once (after a confirmation), with validation, success/error messages and empty/loading/error states. Use the toolbar menu to switch between **Shopping list**, **Recipes** and **Admin**, where categories can be created, renamed and deleted without a login. Items appear in each assigned category, and items without one appear under Uncategorized. A category in use cannot be deleted until it is removed from all items. The interface is available in **English, Spanish and Catalan**: pick the language in the toolbar; the choice is remembered on the device, and the first launch follows the device language when supported.
 
 The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
 
-Not implemented (yet): recipes, meal planning, shopping lists generated from meals, sync, accounts.
+Not implemented (yet): editing recipes after import, meal planning, shopping lists generated from recipes, sync, accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
+
+## Import a recipe
+
+Open **Recipes** and select **Import recipe**. Paste the HTTPS URL of a Directo al Paladar recipe and the page's HTML source, then select **Review recipe**. For example, on desktop Chrome or Firefox, open the recipe page, use `Ctrl+U` (or `Cmd+Option+U` on macOS) to view its source, and copy it. On a mobile device, use a browser or another device that can display the page source and copy it into the app. Copying rendered article text instead of HTML source will not work.
+
+Review the title, yield, ingredients, instructions and picture before saving. Ingredients that cannot be mapped confidently to shopping-list units retain their original text and must be corrected or explicitly confirmed. The import itself runs locally and accepts up to 5 MiB of page source. Only Directo al Paladar URLs are supported; changes to the site may prevent extraction.
+
+Recipes are stored locally, but pictures are referenced by their HTTPS URLs rather than saved offline. Displaying a picture contacts its host and needs network access; if it is unavailable the other recipe details remain accessible.
 
 ## Prerequisites
 
@@ -88,6 +96,7 @@ src/
     infrastructure/         Dexie implementation of the port
     hooks/ components/ pages/   React + Ionic UI
     messages/               texts per language (en, es, ca)
+  features/recipes/         local recipe import, review, persistence and display
   infrastructure/persistence/   Dexie database and schema versions
   shared/                   Result, PersistenceError, generateId
   test/                     test setup and UI-flow tests
@@ -102,8 +111,9 @@ docs/                       architecture and development guides
 - Editing items and categories keeps no history. Units are a fixed list (shown in the selected language, stored as language-independent ids) and are not converted or summed. Item and category names are never translated, and amounts always use "." as the decimal separator.
 - Removing items, including "Clear completed", is permanent: there is no undo or trash.
 - Native Android/iOS builds untested; Playwright covers Chromium only.
+- Recipe imports require manually pasted page source on every platform; saved picture URLs require network access.
 - `npm audit` reports moderate advisories caused by Ionic 9's React Router 6 requirement and the Capacitor CLI's dev-only dependencies; see [docs/development.md](docs/development.md#known-dependency-advisories).
 
 ## Next recommended step
 
-Create the next OpenSpec change for a planning feature, such as recipes.
+Create the next OpenSpec change for an approved planning feature.

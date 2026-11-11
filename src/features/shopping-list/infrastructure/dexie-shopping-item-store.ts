@@ -14,6 +14,9 @@ const ACTION_DESCRIPTIONS: Record<PersistenceAction, string> = {
   'load-categories': 'load categories',
   'save-category': 'save the category',
   'remove-category': 'remove the category',
+  'load-recipes': 'load recipes',
+  'read-recipe': 'read the recipe',
+  'save-recipe': 'save the recipe',
 };
 
 async function guard<T>(action: PersistenceAction, operation: () => Promise<T>): Promise<T> {

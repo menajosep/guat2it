@@ -15,6 +15,7 @@ export interface ShoppingListMessages {
     readonly openMenu: string;
     readonly closeMenu: string;
     readonly shoppingList: string;
+    readonly recipes: string;
     readonly admin: string;
   };
   readonly loadingList: string;

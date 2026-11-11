@@ -1,0 +1,33 @@
+import type { AppDatabase } from '../../../infrastructure/persistence/app-database';
+import { PersistenceError, type PersistenceAction } from '../../../shared/errors/persistence-error';
+import type { RecipeStore } from '../application/recipe-ports';
+import type { Recipe } from '../domain/recipe';
+
+async function guard<T>(action: PersistenceAction, operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new PersistenceError('Could not access recipes because local storage failed.', {
+      cause: error,
+      action,
+    });
+  }
+}
+
+export class DexieRecipeStore implements RecipeStore {
+  constructor(private readonly db: AppDatabase) {}
+
+  list(): Promise<Recipe[]> {
+    return guard('load-recipes', () => this.db.recipes.toArray());
+  }
+
+  get(id: string): Promise<Recipe | undefined> {
+    return guard('read-recipe', () => this.db.recipes.get(id));
+  }
+
+  save(recipe: Recipe): Promise<void> {
+    return guard('save-recipe', async () => {
+      await this.db.recipes.add(recipe);
+    });
+  }
+}

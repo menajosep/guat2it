@@ -41,6 +41,8 @@ The CLI is a dev dependency, so use `npx openspec ...` (or the npm scripts). Can
 - Ionic components are custom elements. Tests hydrate them in jsdom and drive the native input with `userEvent`.
 - `vite.config.ts` aliases `@lit/react` to its browser build for tests. Without it Vitest resolves the SSR build, which silently never attaches `onIonInput`/`onIonChange` handlers.
 - Each test creates a uniquely named Dexie database on top of `fake-indexeddb`.
+- Recipe import tests use synthetic JSON-LD fixtures and do not depend on network access. The Playwright recipe flow blocks the sample image request.
+- The same URL plus page-source paste workflow is used on web, Android and iOS; native device verification requires the corresponding platform tools and a device or emulator.
 
 ## Native platforms (Capacitor)
 

@@ -7,26 +7,33 @@ import { ShoppingListServiceProvider } from '../features/shopping-list/hooks/sho
 import type { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 import { ShoppingListPage } from '../features/shopping-list/pages/ShoppingListPage';
 import { AdminPage } from '../features/shopping-list/pages/AdminPage';
+import type { RecipeService } from '../features/recipes/application/recipe-service';
+import { RecipeServiceProvider } from '../features/recipes/hooks/recipe-service-context';
+import { RecipesPage } from '../features/recipes/pages/RecipesPage';
 import { AppMenu } from './AppMenu';
 
 interface AppProps {
   shoppingListService: ShoppingListService;
   languageService: LanguageService;
+  recipeService: RecipeService;
 }
 
-export function App({ shoppingListService, languageService }: AppProps) {
+export function App({ shoppingListService, languageService, recipeService }: AppProps) {
   return (
     <IonApp>
       <LanguageProvider service={languageService}>
         <ShoppingListServiceProvider value={shoppingListService}>
-          <IonReactRouter>
-            <AppMenu />
-            <IonRouterOutlet id="main-content">
-              <Route path="/shopping-list" element={<ShoppingListPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="*" element={<Navigate to="/shopping-list" replace />} />
-            </IonRouterOutlet>
-          </IonReactRouter>
+          <RecipeServiceProvider value={recipeService}>
+            <IonReactRouter>
+              <AppMenu />
+              <IonRouterOutlet id="main-content">
+                <Route path="/shopping-list" element={<ShoppingListPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/recipes" element={<RecipesPage />} />
+                <Route path="*" element={<Navigate to="/shopping-list" replace />} />
+              </IonRouterOutlet>
+            </IonReactRouter>
+          </RecipeServiceProvider>
         </ShoppingListServiceProvider>
       </LanguageProvider>
     </IonApp>

@@ -2,7 +2,11 @@ import { setupIonicReact } from '@ionic/react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../app/App';
-import { createLanguageService, createShoppingListService } from '../app/create-services';
+import {
+  createLanguageService,
+  createRecipeService,
+  createShoppingListService,
+} from '../app/create-services';
 import { PersistenceError } from '../shared/errors/persistence-error';
 import type { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 
@@ -19,7 +23,11 @@ function renderApp(
   const service =
     options.service ?? createShoppingListService(options.databaseName ?? uniqueDatabase());
   const view = render(
-    <App shoppingListService={service} languageService={createLanguageService(options.storage)} />,
+    <App
+      shoppingListService={service}
+      languageService={createLanguageService(options.storage)}
+      recipeService={createRecipeService(uniqueDatabase())}
+    />,
   );
   return { service, ...view };
 }
