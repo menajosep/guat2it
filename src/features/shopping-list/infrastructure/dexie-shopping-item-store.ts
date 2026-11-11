@@ -17,6 +17,7 @@ const ACTION_DESCRIPTIONS: Record<PersistenceAction, string> = {
   'load-recipes': 'load recipes',
   'read-recipe': 'read the recipe',
   'save-recipe': 'save the recipe',
+  'update-recipe': 'update the recipe',
   'remove-recipe': 'remove the recipe',
 };
 

@@ -64,3 +64,49 @@ test('imports, reviews and persists a recipe from pasted page source', async ({ 
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByText('No recipes yet.')).toBeVisible();
 });
+
+test('cancels recipe edits and persists saved changes after reload', async ({ page }) => {
+  const editableSource = `<script type="application/ld+json">${JSON.stringify({
+    '@type': 'Recipe',
+    name: 'Simple soup',
+    recipeYield: 4,
+    recipeIngredient: ['200 g lentils'],
+    recipeInstructions: 'Cook gently.',
+    image: 'https://images.example.com/soup.jpg',
+  })}</script>`;
+  await page.route('https://images.example.com/**', (route) => route.abort());
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+  await page.getByRole('button', { name: 'Import recipe' }).click();
+  await page.getByLabel('Recipe URL').fill('https://www.directoalpaladar.com/example');
+  await page.getByLabel('Page source').fill(editableSource);
+  await page.getByRole('button', { name: 'Review recipe' }).click();
+  await page.getByRole('button', { name: 'Save recipe' }).click();
+  await expect(page.getByRole('button', { name: 'Simple soup' })).toBeVisible();
+  await page.getByRole('button', { name: 'Simple soup' }).click();
+  await page.getByRole('button', { name: 'Edit recipe' }).click();
+
+  await page.getByLabel('Title').fill('Canceled edit');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('heading', { name: 'Simple soup' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Edit recipe' }).click();
+  await page.getByLabel('Title').fill('Updated soup');
+  await page.getByLabel('Yield').fill('2');
+  await page.getByLabel('Instructions').fill('Simmer slowly.');
+  await page.getByLabel('Picture URL').fill('https://images.example.com/updated.jpg');
+  const ingredient = page.getByRole('group', { name: 'Ingredients 1' });
+  await ingredient.getByLabel('Ingredient name').fill('red lentils');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('heading', { name: 'Updated soup' })).toBeVisible();
+  await expect(page.getByText('Simmer slowly.')).toBeVisible();
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+  await page.getByRole('button', { name: 'Updated soup' }).click();
+  await expect(page.getByRole('heading', { name: 'Updated soup' })).toBeVisible();
+  await expect(page.getByText('red lentils — 200 grams')).toBeVisible();
+  await expect(page.getByText('Simmer slowly.')).toBeVisible();
+});

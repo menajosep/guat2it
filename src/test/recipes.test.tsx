@@ -212,3 +212,138 @@ it('announces recipe deletion failure and leaves the recipe available', async ()
   expect(screen.getByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
   expect(await recipes.list()).toHaveLength(1);
 });
+
+it('edits saved recipe fields and ingredient order without changing its identity or source', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+  const original = (await recipes.list())[0];
+  if (!original) throw new Error('Expected the saved recipe');
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  expect(screen.getByLabelText('Title')).toHaveValue('Lentil soup');
+  expect(screen.getByLabelText('Yield')).toHaveValue('4');
+  expect(screen.queryByText(/Original ingredient:/)).not.toBeInTheDocument();
+
+  await user.clear(screen.getByLabelText('Title'));
+  await user.type(screen.getByLabelText('Title'), 'Updated soup');
+  await user.clear(screen.getByLabelText('Yield'));
+  await user.type(screen.getByLabelText('Yield'), '2');
+  await user.clear(screen.getByLabelText('Instructions'));
+  await user.type(screen.getByLabelText('Instructions'), 'Simmer slowly.');
+  await user.clear(screen.getByLabelText('Picture URL'));
+  await user.type(screen.getByLabelText('Picture URL'), 'https://images.example.com/updated.jpg');
+
+  const salt = screen.getByRole('group', { name: 'Ingredients 2' });
+  await user.click(within(salt).getByRole('button', { name: 'Remove ingredient' }));
+  await user.click(screen.getByRole('button', { name: 'Add ingredient' }));
+  const thirdIngredient = screen.getByRole('group', { name: 'Ingredients 2' });
+  await user.type(within(thirdIngredient).getByLabelText('Ingredient name'), 'pepper');
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  expect(await screen.findByRole('heading', { name: 'Updated soup' })).toBeInTheDocument();
+  expect(screen.getByText('Simmer slowly.')).toBeInTheDocument();
+  const updated = await recipes.list();
+  expect(updated).toHaveLength(1);
+  expect(updated[0]).toMatchObject({
+    id: original.id,
+    sourceUrl: original.sourceUrl,
+    title: 'Updated soup',
+    yield: 2,
+    ingredients: [{ name: 'lentils', amount: 200 }, { name: 'pepper' }],
+    instructions: 'Simmer slowly.',
+    imageUrl: 'https://images.example.com/updated.jpg',
+  });
+
+  await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+  expect(await screen.findByRole('button', { name: 'Updated soup' })).toBeInTheDocument();
+});
+
+it('cancels recipe editing without changing saved values', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+  const original = (await recipes.list())[0];
+  if (!original) throw new Error('Expected the saved recipe');
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  await user.clear(screen.getByLabelText('Title'));
+  await user.type(screen.getByLabelText('Title'), 'Not saved');
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
+  expect(await recipes.list()).toEqual([original]);
+});
+
+it('keeps an invalid edit available and identifies missing required ingredients', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  const ingredient1 = screen.getByRole('group', { name: 'Ingredients 1' });
+  await user.click(within(ingredient1).getByRole('button', { name: 'Remove ingredient' }));
+  const remainingIngredient = screen.getByRole('group', { name: 'Ingredients 1' });
+  await user.click(within(remainingIngredient).getByRole('button', { name: 'Remove ingredient' }));
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  expect(await screen.findByText('At least one ingredient is required.')).toHaveAttribute(
+    'role',
+    'alert',
+  );
+  expect(screen.getByLabelText('Title')).toHaveValue('Lentil soup');
+  expect(await recipes.list()).toHaveLength(1);
+});
+
+it('retains the edit draft and translates storage failures when language changes', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+  vi.spyOn(recipes, 'update').mockRejectedValueOnce(
+    new PersistenceError('Storage failed', { action: 'update-recipe' }),
+  );
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  await user.clear(screen.getByLabelText('Title'));
+  await user.type(screen.getByLabelText('Title'), 'Updated soup');
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  expect(
+    await screen.findByText('Could not update the recipe because local storage failed.'),
+  ).toHaveAttribute('role', 'alert');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(screen.getByLabelText('Título')).toHaveValue('Updated soup');
+  expect(
+    screen.getByText('No se pudo actualizar la receta porque falló el almacenamiento local.'),
+  ).toBeInTheDocument();
+  const saved = (await recipes.list())[0];
+  if (!saved) throw new Error('Expected the saved recipe');
+  expect(saved.title).toBe('Lentil soup');
+});
+
+it('reports when a recipe disappears while being edited without recreating it', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  const saved = (await recipes.list())[0];
+  if (!saved) throw new Error('Expected the saved recipe');
+  await recipes.remove(saved.id);
+  await user.clear(screen.getByLabelText('Title'));
+  await user.type(screen.getByLabelText('Title'), 'Updated soup');
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+  expect(await screen.findByText('This recipe is no longer available.')).toHaveAttribute(
+    'role',
+    'alert',
+  );
+  expect(screen.getByLabelText('Title')).toHaveValue('Updated soup');
+  expect(await recipes.list()).toEqual([]);
+});

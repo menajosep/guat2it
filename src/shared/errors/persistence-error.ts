@@ -10,6 +10,7 @@ export type PersistenceAction =
   | 'load-recipes'
   | 'read-recipe'
   | 'save-recipe'
+  | 'update-recipe'
   | 'remove-recipe';
 
 /** Failure of the storage layer (unavailable, quota exceeded, blocked, ...). */

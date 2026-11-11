@@ -9,11 +9,11 @@ import { formatQuantity } from '../../shopping-list/messages/format-quantity';
 import type { ImportError } from '../application/recipe-service';
 import { RecipeImage } from '../components/RecipeImage';
 import { RecipeReview } from '../components/RecipeReview';
-import type { Recipe, RecipeDraft, RecipeErrors } from '../domain/recipe';
+import { recipeToDraft, type Recipe, type RecipeDraft, type RecipeErrors } from '../domain/recipe';
 import { useRecipeService } from '../hooks/recipe-service-context';
 import { recipeMessages } from '../messages/recipe-messages';
 
-type View = 'list' | 'import' | 'review' | 'detail';
+type View = 'list' | 'import' | 'review' | 'edit' | 'detail';
 type Status = 'loading' | 'ready' | 'error';
 
 export function RecipesPage() {
@@ -33,6 +33,9 @@ export function RecipesPage() {
   const [loadError, setLoadError] = useState<'storage' | 'unexpected'>('storage');
   const [saveError, setSaveError] = useState<'storage' | 'unexpected' | null>(null);
   const [deleteError, setDeleteError] = useState<'storage' | 'unexpected' | 'not-found' | null>(
+    null,
+  );
+  const [updateError, setUpdateError] = useState<'storage' | 'unexpected' | 'not-found' | null>(
     null,
   );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -129,6 +132,38 @@ export function RecipesPage() {
     }
   };
 
+  const updateSelectedRecipe = async () => {
+    if (!selected || !draft || saving) return;
+    setSaving(true);
+    setUpdateError(null);
+    setErrors(null);
+    try {
+      const result = await service.update(selected.id, draft);
+      if (!result.ok) {
+        if (result.error === 'not-found') setUpdateError('not-found');
+        else setErrors(result.error);
+        return;
+      }
+      setSelected(result.value);
+      setDraft(null);
+      setErrors(null);
+      setView('detail');
+      await reload();
+    } catch (error) {
+      console.error('Unable to update recipe', error);
+      setUpdateError(error instanceof PersistenceError ? 'storage' : 'unexpected');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateErrorMessage =
+    updateError === 'storage'
+      ? messages.updateFailed
+      : updateError === 'not-found'
+        ? messages.missingRecipe
+        : messages.updateUnexpected;
+
   const deleteErrorMessage =
     deleteError === 'storage'
       ? messages.deleteFailed
@@ -188,6 +223,7 @@ export function RecipesPage() {
                             onClick={() => {
                               setSelected(recipe);
                               setDeleteError(null);
+                              setUpdateError(null);
                               setView('detail');
                             }}
                           >
@@ -211,6 +247,17 @@ export function RecipesPage() {
                 }}
               >
                 {messages.back}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(recipeToDraft(selected));
+                  setErrors(null);
+                  setUpdateError(null);
+                  setView('edit');
+                }}
+              >
+                {messages.edit}
               </button>
               <button
                 type="button"
@@ -330,6 +377,33 @@ export function RecipesPage() {
                 onCancel={() => {
                   setDraft(null);
                   setView('list');
+                }}
+              />
+            </>
+          )}
+          {view === 'edit' && selected && draft && (
+            <>
+              {updateError && <p role="alert">{updateErrorMessage}</p>}
+              <RecipeReview
+                draft={draft}
+                errors={errors}
+                messages={messages}
+                saving={saving}
+                editing
+                onChange={setDraft}
+                onRemoveIngredient={(index) => {
+                  setDraft({
+                    ...draft,
+                    ingredients: draft.ingredients.filter((_, position) => position !== index),
+                  });
+                  setErrors(null);
+                }}
+                onSave={() => void updateSelectedRecipe()}
+                onCancel={() => {
+                  setDraft(null);
+                  setErrors(null);
+                  setUpdateError(null);
+                  setView('detail');
                 }}
               />
             </>

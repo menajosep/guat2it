@@ -9,7 +9,9 @@ interface RecipeReviewProps {
   errors: RecipeErrors | null;
   messages: RecipeMessages;
   saving: boolean;
+  editing?: boolean;
   onChange: (draft: RecipeDraft) => void;
+  onRemoveIngredient?: (index: number) => void;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -19,7 +21,9 @@ export function RecipeReview({
   errors,
   messages,
   saving,
+  editing = false,
   onChange,
+  onRemoveIngredient,
   onSave,
   onCancel,
 }: RecipeReviewProps) {
@@ -70,9 +74,11 @@ export function RecipeReview({
           return (
             <fieldset key={id}>
               <legend>{`${messages.ingredients} ${String(index + 1)}`}</legend>
-              <p>
-                {messages.original}: {ingredient.source}
-              </p>
+              {!editing && (
+                <p>
+                  {messages.original}: {ingredient.source}
+                </p>
+              )}
               <label htmlFor={`${id}-name`}>{messages.ingredientName}</label>
               <input
                 id={`${id}-name`}
@@ -93,17 +99,32 @@ export function RecipeReview({
                   updateIngredient(index, { ...ingredient, quantity });
                 }}
               />
-              <label>
-                <input
-                  type="checkbox"
-                  checked={ingredient.confirmed}
-                  onChange={(event) => {
-                    updateIngredient(index, { ...ingredient, confirmed: event.target.checked });
+              {!editing && (
+                <>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={ingredient.confirmed}
+                      onChange={(event) => {
+                        updateIngredient(index, { ...ingredient, confirmed: event.target.checked });
+                      }}
+                    />
+                    {messages.confirmIngredient}
+                  </label>
+                  {itemErrors?.unconfirmed && <p role="alert">{messages.confirmRequired}</p>}
+                </>
+              )}
+              {editing && onRemoveIngredient && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    onRemoveIngredient(index);
                   }}
-                />
-                {messages.confirmIngredient}
-              </label>
-              {itemErrors?.unconfirmed && <p role="alert">{messages.confirmRequired}</p>}
+                >
+                  {messages.removeIngredient}
+                </button>
+              )}
             </fieldset>
           );
         })}
@@ -154,7 +175,7 @@ export function RecipeReview({
         unavailable={messages.imageUnavailable}
       />
       <button type="submit" disabled={saving}>
-        {messages.save}
+        {editing ? messages.update : messages.save}
       </button>
       <button type="button" disabled={saving} onClick={onCancel}>
         {messages.cancel}

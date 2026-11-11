@@ -111,6 +111,7 @@ export const en: ShoppingListMessages = {
     'load-recipes': 'Could not load recipes because local storage failed.',
     'read-recipe': 'Could not read the recipe because local storage failed.',
     'save-recipe': 'Could not save the recipe because local storage failed.',
+    'update-recipe': 'Could not update the recipe because local storage failed.',
     'remove-recipe': 'Could not remove the recipe because local storage failed.',
   },
   fallbackError: 'Something went wrong. Please try again.',
