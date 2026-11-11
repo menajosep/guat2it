@@ -8,7 +8,7 @@ Implemented: a **local shopping list** — add items with an optional amount, un
 
 The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
 
-Not implemented (yet): editing recipes after import, meal planning, shopping lists generated from recipes, sync, accounts.
+Not implemented (yet): meal planning, shopping lists generated from recipes, sync, accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
 
@@ -19,6 +19,8 @@ Open **Recipes** and select **Import recipe**. On Android and iOS, enter the HTT
 Review the title, yield, ingredients, instructions and picture before saving. Ingredients that cannot be mapped confidently to shopping-list units retain their original text and must be corrected or explicitly confirmed. The import itself runs locally and accepts up to 5 MiB of page source. Only Directo al Paladar URLs are supported; changes to the site may prevent extraction.
 
 Recipes are stored locally, but pictures are referenced by their HTTPS URLs rather than saved offline. Displaying a picture contacts its host and needs network access; if it is unavailable the other recipe details remain accessible. Native downloads accept up to 5 MiB and restrict requests and redirects to the supported Directo al Paladar hosts.
+
+To edit a saved recipe, open it from the recipe list and select **Edit recipe**. Changes are validated before saving; canceling leaves the saved recipe unchanged.
 
 ## Prerequisites
 

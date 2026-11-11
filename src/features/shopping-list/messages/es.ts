@@ -111,6 +111,7 @@ export const es: ShoppingListMessages = {
     'load-recipes': 'No se pudieron cargar las recetas porque falló el almacenamiento local.',
     'read-recipe': 'No se pudo leer la receta porque falló el almacenamiento local.',
     'save-recipe': 'No se pudo guardar la receta porque falló el almacenamiento local.',
+    'update-recipe': 'No se pudo actualizar la receta porque falló el almacenamiento local.',
     'remove-recipe': 'No se pudo eliminar la receta porque falló el almacenamiento local.',
   },
   fallbackError: 'Algo salió mal. Inténtalo de nuevo.',

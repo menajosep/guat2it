@@ -18,6 +18,7 @@ function service(): { service: RecipeService; store: RecipeStore } {
     list: vi.fn().mockResolvedValue([]),
     get: vi.fn().mockResolvedValue(undefined),
     save: vi.fn().mockResolvedValue(undefined),
+    update: vi.fn().mockResolvedValue(true),
     remove: vi.fn().mockResolvedValue(true),
   };
   return { service: new RecipeService(store, extract, () => 'id'), store };
@@ -137,12 +138,107 @@ describe('RecipeService', () => {
     expect(save).toHaveBeenCalledOnce();
   });
 
+  it('updates validated recipes while preserving their id and stored source URL', async () => {
+    const existing = {
+      id: 'recipe-id',
+      sourceUrl,
+      title: 'Soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' as const }],
+      instructions: 'Cook',
+      imageUrl: 'https://example.com/image.jpg',
+    };
+    const { service: instance, store } = service();
+    vi.spyOn(store, 'get').mockResolvedValue(existing);
+    const update = vi.spyOn(store, 'update');
+    const result = await instance.update('recipe-id', {
+      sourceUrl: 'https://example.com/changed-source',
+      title: 'Updated soup',
+      yield: '2',
+      ingredients: [
+        {
+          source: '',
+          name: 'lentils',
+          quantity: { amount: '100', unit: 'gram' },
+          confirmed: true,
+        },
+      ],
+      instructions: 'Simmer',
+      imageUrl: 'https://example.com/new-image.jpg',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        ...existing,
+        title: 'Updated soup',
+        yield: 2,
+        ingredients: [{ name: 'lentils', amount: 100, unit: 'gram' }],
+        instructions: 'Simmer',
+        imageUrl: 'https://example.com/new-image.jpg',
+      },
+    });
+    expect(update).toHaveBeenCalledWith(result.ok && result.value);
+
+    await instance.update('recipe-id', {
+      sourceUrl,
+      title: '',
+      yield: '2',
+      ingredients: [],
+      instructions: 'Cook',
+      imageUrl: existing.imageUrl,
+    });
+    expect(update).toHaveBeenCalledOnce();
+  });
+
+  it('reports missing recipes before and during update', async () => {
+    const { service: instance, store } = service();
+    const get = vi.spyOn(store, 'get');
+    const update = vi.spyOn(store, 'update');
+    const validDraft = {
+      sourceUrl,
+      title: 'Updated soup',
+      yield: '2',
+      ingredients: [
+        {
+          source: '',
+          name: 'lentils',
+          quantity: { amount: '', unit: undefined },
+          confirmed: true,
+        },
+      ],
+      instructions: 'Simmer',
+      imageUrl: 'https://example.com/image.jpg',
+    };
+    expect(await instance.update('missing-id', validDraft)).toEqual({
+      ok: false,
+      error: 'not-found',
+    });
+    expect(update).not.toHaveBeenCalled();
+
+    get.mockResolvedValue({
+      id: 'recipe-id',
+      sourceUrl,
+      title: 'Soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils' }],
+      instructions: 'Cook',
+      imageUrl: 'https://example.com/image.jpg',
+    });
+    update.mockResolvedValue(false);
+    expect(await instance.update('recipe-id', validDraft)).toEqual({
+      ok: false,
+      error: 'not-found',
+    });
+  });
+
   it('removes an existing recipe and reports when it no longer exists', async () => {
     const remove = vi.fn().mockResolvedValue(true);
     const store: RecipeStore = {
       list: vi.fn().mockResolvedValue([]),
       get: vi.fn().mockResolvedValue(undefined),
       save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(true),
       remove,
     };
     const instance = new RecipeService(store, extract, () => 'id');

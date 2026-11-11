@@ -22,5 +22,6 @@ export interface RecipeStore {
   list(): Promise<Recipe[]>;
   get(id: string): Promise<Recipe | undefined>;
   save(recipe: Recipe): Promise<void>;
+  update(recipe: Recipe): Promise<boolean>;
   remove(id: string): Promise<boolean>;
 }

@@ -13,4 +13,12 @@ describe.each(LANGUAGES)('%s recipe messages', (language) => {
     expect(messages.deleteUnexpected.trim()).not.toBe('');
     expect(messages.cancel.trim()).not.toBe('');
   });
+
+  it('provides localized edit controls and update errors', () => {
+    expect(messages.edit.trim()).not.toBe('');
+    expect(messages.update.trim()).not.toBe('');
+    expect(messages.removeIngredient.trim()).not.toBe('');
+    expect(messages.updateFailed.trim()).not.toBe('');
+    expect(messages.updateUnexpected.trim()).not.toBe('');
+  });
 });

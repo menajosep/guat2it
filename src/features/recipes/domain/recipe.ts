@@ -1,6 +1,7 @@
 import { fail, ok, type Result } from '../../../shared/types/result';
 import { parseItemName, type ItemNameError } from '../../shopping-list/domain/shopping-item';
 import {
+  amountToText,
   parseQuantity,
   type Quantity,
   type QuantityDraft,
@@ -35,6 +36,22 @@ export interface Recipe {
   readonly ingredients: readonly RecipeIngredient[];
   readonly instructions: string;
   readonly imageUrl: string;
+}
+
+export function recipeToDraft(recipe: Recipe): RecipeDraft {
+  return {
+    sourceUrl: recipe.sourceUrl,
+    title: recipe.title,
+    yield: String(recipe.yield),
+    ingredients: recipe.ingredients.map((ingredient) => ({
+      source: '',
+      name: ingredient.name,
+      quantity: { amount: amountToText(ingredient), unit: ingredient.unit },
+      confirmed: true,
+    })),
+    instructions: recipe.instructions,
+    imageUrl: recipe.imageUrl,
+  };
 }
 
 export interface IngredientErrors {

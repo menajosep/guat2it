@@ -73,6 +73,18 @@ export class RecipeService {
     return removed ? ok(undefined) : fail('not-found');
   }
 
+  async update(
+    id: string,
+    draft: RecipeDraft,
+  ): Promise<Result<Recipe, RecipeErrors | 'not-found'>> {
+    const existing = await this.store.get(id);
+    if (!existing) return fail('not-found');
+    const validated = validateRecipe({ ...draft, sourceUrl: existing.sourceUrl }, id);
+    if (!validated.ok) return validated;
+    const updated = await this.store.update(validated.value);
+    return updated ? ok(validated.value) : fail('not-found');
+  }
+
   get(id: string): Promise<Recipe | undefined> {
     return this.store.get(id);
   }

@@ -11,6 +11,11 @@ export interface RecipeMessages {
   readonly extract: string;
   readonly downloading: string;
   readonly back: string;
+  readonly edit: string;
+  readonly update: string;
+  readonly removeIngredient: string;
+  readonly updateFailed: string;
+  readonly updateUnexpected: string;
   readonly delete: string;
   readonly deleteTitle: string;
   readonly deleteConfirmation: (title: string) => string;
@@ -63,6 +68,11 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     extract: 'Review recipe',
     downloading: 'Downloading recipe',
     back: 'Back to recipes',
+    edit: 'Edit recipe',
+    update: 'Save changes',
+    removeIngredient: 'Remove ingredient',
+    updateFailed: 'Could not update the recipe because local storage failed.',
+    updateUnexpected: 'Could not update the recipe. Please try again.',
     delete: 'Delete recipe',
     deleteTitle: 'Delete recipe?',
     deleteConfirmation: (title) =>
@@ -115,6 +125,11 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     extract: 'Revisar receta',
     downloading: 'Descargando receta',
     back: 'Volver a recetas',
+    edit: 'Editar receta',
+    update: 'Guardar cambios',
+    removeIngredient: 'Eliminar ingrediente',
+    updateFailed: 'No se pudo actualizar la receta porque falló el almacenamiento local.',
+    updateUnexpected: 'No se pudo actualizar la receta. Inténtalo de nuevo.',
     delete: 'Eliminar receta',
     deleteTitle: '¿Eliminar receta?',
     deleteConfirmation: (title) =>
@@ -168,6 +183,11 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     extract: 'Revisa la recepta',
     downloading: 'Descarregant la recepta',
     back: 'Torna a les receptes',
+    edit: 'Edita la recepta',
+    update: 'Desa els canvis',
+    removeIngredient: "Suprimeix l'ingredient",
+    updateFailed: "No s'ha pogut actualitzar la recepta perquè ha fallat l'emmagatzematge local.",
+    updateUnexpected: "No s'ha pogut actualitzar la recepta. Torna-ho a provar.",
     delete: 'Suprimeix la recepta',
     deleteTitle: 'Vols suprimir la recepta?',
     deleteConfirmation: (title) =>

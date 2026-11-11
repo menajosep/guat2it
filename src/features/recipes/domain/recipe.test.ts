@@ -1,4 +1,10 @@
-import { validateIngredient, validateRecipe, type RecipeDraft } from './recipe';
+import {
+  recipeToDraft,
+  validateIngredient,
+  validateRecipe,
+  type Recipe,
+  type RecipeDraft,
+} from './recipe';
 
 const draft: RecipeDraft = {
   sourceUrl: 'https://www.directoalpaladar.com/example',
@@ -17,6 +23,40 @@ const draft: RecipeDraft = {
 };
 
 describe('recipe validation', () => {
+  it('converts saved recipes to editable drafts without source-line assumptions', () => {
+    const saved: Recipe = {
+      id: 'recipe-1',
+      sourceUrl: draft.sourceUrl,
+      title: 'Soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }, { name: 'salt' }],
+      instructions: 'Cook.',
+      imageUrl: draft.imageUrl,
+    };
+
+    expect(recipeToDraft(saved)).toEqual({
+      sourceUrl: draft.sourceUrl,
+      title: 'Soup',
+      yield: '4',
+      ingredients: [
+        {
+          source: '',
+          name: 'lentils',
+          quantity: { amount: '200', unit: 'gram' },
+          confirmed: true,
+        },
+        {
+          source: '',
+          name: 'salt',
+          quantity: { amount: '', unit: undefined },
+          confirmed: true,
+        },
+      ],
+      instructions: 'Cook.',
+      imageUrl: draft.imageUrl,
+    });
+  });
+
   it('creates a recipe with shopping-compatible ingredient values', () => {
     expect(validateRecipe(draft, 'recipe-1')).toEqual({
       ok: true,
