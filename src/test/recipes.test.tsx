@@ -60,6 +60,21 @@ async function startReview(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByLabelText('Title');
 }
 
+async function createSavedRecipe(user: ReturnType<typeof userEvent.setup>) {
+  const { recipes } = renderApp();
+  await openRecipes(user);
+  await startReview(user);
+  const ingredient = screen.getByRole('group', { name: 'Ingredients 2' });
+  await user.clear(within(ingredient).getByLabelText('Ingredient name'));
+  await user.type(within(ingredient).getByLabelText('Ingredient name'), 'salt');
+  await user.click(
+    within(ingredient).getByRole('checkbox', { name: 'I have reviewed this ingredient' }),
+  );
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+  await screen.findByRole('button', { name: 'Lentil soup' });
+  return recipes;
+}
+
 afterEach(() => {
   cleanup();
   localStorage.clear();
@@ -155,4 +170,45 @@ it('reports unexpected import errors without claiming a storage failure', async 
     'role',
     'alert',
   );
+});
+
+it('keeps a recipe when deletion is canceled and removes it when confirmed', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Delete recipe' }));
+  let dialog = await screen.findByRole('alertdialog');
+  expect(dialog).toHaveTextContent('Are you sure you want to delete “Lentil soup”?');
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
+  expect(await recipes.list()).toHaveLength(1);
+
+  await user.click(screen.getByRole('button', { name: 'Delete recipe' }));
+  dialog = await screen.findByRole('alertdialog');
+  await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+  expect(await screen.findByText('No recipes yet.')).toBeInTheDocument();
+  expect(await recipes.list()).toEqual([]);
+});
+
+it('announces recipe deletion failure and leaves the recipe available', async () => {
+  const user = userEvent.setup();
+  const recipes = await createSavedRecipe(user);
+  vi.spyOn(recipes, 'remove').mockRejectedValue(
+    new PersistenceError('Storage failed', { action: 'remove-recipe' }),
+  );
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Delete recipe' }));
+  const dialog = await screen.findByRole('alertdialog');
+  await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+  expect(
+    await screen.findByText('Could not delete the recipe because local storage failed.'),
+  ).toHaveAttribute('role', 'alert');
+  expect(screen.getByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
+  expect(await recipes.list()).toHaveLength(1);
 });

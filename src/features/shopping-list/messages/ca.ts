@@ -113,6 +113,7 @@ export const ca: ShoppingListMessages = {
     'load-recipes': "No s'han pogut carregar les receptes perquè ha fallat l'emmagatzematge local.",
     'read-recipe': "No s'ha pogut llegir la recepta perquè ha fallat l'emmagatzematge local.",
     'save-recipe': "No s'ha pogut desar la recepta perquè ha fallat l'emmagatzematge local.",
+    'remove-recipe': "No s'ha pogut eliminar la recepta perquè ha fallat l'emmagatzematge local.",
   },
   fallbackError: 'Alguna cosa ha anat malament. Torna-ho a provar.',
   dismissMessage: 'Descarta el missatge',

@@ -1,4 +1,4 @@
-import { IonContent, IonPage, IonSpinner, useIonViewWillEnter } from '@ionic/react';
+import { IonAlert, IonContent, IonPage, IonSpinner, useIonViewWillEnter } from '@ionic/react';
 import { useCallback, useState } from 'react';
 import { PersistenceError } from '../../../shared/errors/persistence-error';
 import { LanguageNotice } from '../../language/components/LanguageNotice';
@@ -32,7 +32,12 @@ export function RecipesPage() {
   const [errors, setErrors] = useState<RecipeErrors | null>(null);
   const [loadError, setLoadError] = useState<'storage' | 'unexpected'>('storage');
   const [saveError, setSaveError] = useState<'storage' | 'unexpected' | null>(null);
+  const [deleteError, setDeleteError] = useState<'storage' | 'unexpected' | 'not-found' | null>(
+    null,
+  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const reload = useCallback(async () => {
@@ -103,6 +108,34 @@ export function RecipesPage() {
     }
   };
 
+  const deleteSelectedRecipe = async () => {
+    if (!selected || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const result = await service.remove(selected.id);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
+      setSelected(null);
+      setView('list');
+      await reload();
+    } catch (error) {
+      console.error('Unable to delete recipe', error);
+      setDeleteError(error instanceof PersistenceError ? 'storage' : 'unexpected');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const deleteErrorMessage =
+    deleteError === 'storage'
+      ? messages.deleteFailed
+      : deleteError === 'not-found'
+        ? messages.missingRecipe
+        : messages.deleteUnexpected;
+
   const importErrorMessages: Record<ImportError | 'unexpected', string> = {
     'invalid-url': messages.invalidUrl,
     'source-too-large': messages.tooLarge,
@@ -154,6 +187,7 @@ export function RecipesPage() {
                             type="button"
                             onClick={() => {
                               setSelected(recipe);
+                              setDeleteError(null);
                               setView('detail');
                             }}
                           >
@@ -169,6 +203,7 @@ export function RecipesPage() {
           )}
           {view === 'detail' && selected && (
             <>
+              {deleteError && <p role="alert">{deleteErrorMessage}</p>}
               <button
                 type="button"
                 onClick={() => {
@@ -177,6 +212,34 @@ export function RecipesPage() {
               >
                 {messages.back}
               </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteDialogOpen(true);
+                }}
+              >
+                {messages.delete}
+              </button>
+              <IonAlert
+                isOpen={deleteDialogOpen}
+                header={messages.deleteTitle}
+                message={messages.deleteConfirmation(selected.title)}
+                buttons={[
+                  { text: messages.cancel, role: 'cancel' },
+                  {
+                    text: messages.deleteConfirm,
+                    role: 'destructive',
+                    handler: () => {
+                      void deleteSelectedRecipe();
+                    },
+                  },
+                ]}
+                onDidDismiss={() => {
+                  setDeleteDialogOpen(false);
+                }}
+              />
               <h1>{selected.title}</h1>
               <RecipeImage
                 key={selected.imageUrl}

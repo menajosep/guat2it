@@ -68,6 +68,11 @@ export class RecipeService {
     return this.store.list();
   }
 
+  async remove(id: string): Promise<Result<void, 'not-found'>> {
+    const removed = await this.store.remove(id);
+    return removed ? ok(undefined) : fail('not-found');
+  }
+
   get(id: string): Promise<Recipe | undefined> {
     return this.store.get(id);
   }

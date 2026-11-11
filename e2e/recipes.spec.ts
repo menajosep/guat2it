@@ -54,4 +54,13 @@ test('imports, reviews and persists a recipe from pasted page source', async ({ 
   await expect(page.getByText('salt', { exact: true })).toBeVisible();
   await expect(page.getByText('Cook gently.')).toBeVisible();
   await expect(page.getByRole('img', { name: 'Picture unavailable' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete recipe' }).click();
+  const cancelDialog = page.getByRole('alertdialog');
+  await expect(cancelDialog).toContainText('Are you sure you want to delete “Lentil soup”?');
+  await cancelDialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(cancelDialog).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Lentil soup' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete recipe' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(page.getByText('No recipes yet.')).toBeVisible();
 });

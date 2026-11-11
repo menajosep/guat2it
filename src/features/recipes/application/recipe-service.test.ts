@@ -18,6 +18,7 @@ function service(): { service: RecipeService; store: RecipeStore } {
     list: vi.fn().mockResolvedValue([]),
     get: vi.fn().mockResolvedValue(undefined),
     save: vi.fn().mockResolvedValue(undefined),
+    remove: vi.fn().mockResolvedValue(true),
   };
   return { service: new RecipeService(store, extract, () => 'id'), store };
 }
@@ -134,5 +135,21 @@ describe('RecipeService', () => {
     expect(save).not.toHaveBeenCalled();
     expect(await instance.save(draft.value)).toMatchObject({ ok: true, value: { id: 'id' } });
     expect(save).toHaveBeenCalledOnce();
+  });
+
+  it('removes an existing recipe and reports when it no longer exists', async () => {
+    const remove = vi.fn().mockResolvedValue(true);
+    const store: RecipeStore = {
+      list: vi.fn().mockResolvedValue([]),
+      get: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined),
+      remove,
+    };
+    const instance = new RecipeService(store, extract, () => 'id');
+    expect(await instance.remove('recipe-id')).toEqual({ ok: true, value: undefined });
+    expect(remove).toHaveBeenCalledWith('recipe-id');
+
+    remove.mockResolvedValue(false);
+    expect(await instance.remove('missing-id')).toEqual({ ok: false, error: 'not-found' });
   });
 });
