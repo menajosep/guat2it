@@ -14,11 +14,11 @@ Not implemented (yet): editing recipes after import, meal planning, shopping lis
 
 ## Import a recipe
 
-Open **Recipes** and select **Import recipe**. Paste the HTTPS URL of a Directo al Paladar recipe and the page's HTML source, then select **Review recipe**. For example, on desktop Chrome or Firefox, open the recipe page, use `Ctrl+U` (or `Cmd+Option+U` on macOS) to view its source, and copy it. On a mobile device, use a browser or another device that can display the page source and copy it into the app. Copying rendered article text instead of HTML source will not work.
+Open **Recipes** and select **Import recipe**. On Android and iOS, enter the HTTPS URL of a Directo al Paladar recipe; the app downloads the page for local processing. On the web, paste both the recipe URL and the page's HTML source, then select **Review recipe**. For example, on desktop Chrome or Firefox, open the recipe page, use `Ctrl+U` (or `Cmd+Option+U` on macOS) to view its source, and copy it. Copying rendered article text instead of HTML source will not work.
 
 Review the title, yield, ingredients, instructions and picture before saving. Ingredients that cannot be mapped confidently to shopping-list units retain their original text and must be corrected or explicitly confirmed. The import itself runs locally and accepts up to 5 MiB of page source. Only Directo al Paladar URLs are supported; changes to the site may prevent extraction.
 
-Recipes are stored locally, but pictures are referenced by their HTTPS URLs rather than saved offline. Displaying a picture contacts its host and needs network access; if it is unavailable the other recipe details remain accessible.
+Recipes are stored locally, but pictures are referenced by their HTTPS URLs rather than saved offline. Displaying a picture contacts its host and needs network access; if it is unavailable the other recipe details remain accessible. Native downloads accept up to 5 MiB and restrict requests and redirects to the supported Directo al Paladar hosts.
 
 ## Prerequisites
 
@@ -80,7 +80,7 @@ npx cap open android    # or: npx cap open ios
 
 - Local iOS builds require macOS and Xcode; running on a device or distributing through TestFlight/App Store additionally requires an Apple Developer account, certificates and provisioning. A Mac is **not** needed to develop and test the web app.
 - `android/` and `ios/` are generated locally; their build output, local SDK paths and signing files are git-ignored. Never commit keystores or certificates.
-- Native builds have **not been verified** in this repository (no Android SDK or Xcode was available when it was created); only the web build is tested.
+- The user verified native URL-only recipe import on Android. iOS device verification has not been performed; Playwright covers the web build.
 
 ## Architecture
 
@@ -110,8 +110,8 @@ docs/                       architecture and development guides
 - Local-only, unsynchronized data; no export/backup.
 - Editing items and categories keeps no history. Units are a fixed list (shown in the selected language, stored as language-independent ids) and are not converted or summed. Item and category names are never translated, and amounts always use "." as the decimal separator.
 - Removing items, including "Clear completed", is permanent: there is no undo or trash.
-- Native Android/iOS builds untested; Playwright covers Chromium only.
-- Recipe imports require manually pasted page source on every platform; saved picture URLs require network access.
+- iOS native behavior remains unverified; Playwright covers Chromium only.
+- Web recipe imports require manually pasted page source; native imports download the page from its URL. Saved picture URLs require network access.
 - `npm audit` reports moderate advisories caused by Ionic 9's React Router 6 requirement and the Capacitor CLI's dev-only dependencies; see [docs/development.md](docs/development.md#known-dependency-advisories).
 
 ## Next recommended step

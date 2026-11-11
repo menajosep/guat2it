@@ -39,7 +39,7 @@ Categories are managed by the shopping-list service and stored independently by 
 
 The app shell exposes a side menu for the shopping-list, Recipes and Admin routes. Category management lives on Admin; item assignment remains on the list. Shopping and Admin pages use the same service and reload a snapshot when entered, so cached Ionic pages reflect changes made on the other screen. Admin is a local settings screen, not an authenticated role.
 
-Recipe import processes a user-supplied URL and pasted source locally, using a size-limited application service and an inert JSON-LD extractor. The review draft preserves unresolved ingredient text; validated ingredients reuse shopping-list name and quantity rules. A complete recipe is written as one record, and errors retain the draft. Pictures are remote HTTPS references, not offline copies; imported text is never rendered as HTML.
+Recipe import processes a user-supplied URL locally: web users paste the page source, while Android and iOS use the bounded native RecipePage downloader with validated redirects. The size-limited application service and inert JSON-LD extractor build a review draft that preserves unresolved ingredient text; validated ingredients reuse shopping-list name and quantity rules. A complete recipe is written as one record, and errors retain the draft. Pictures are remote HTTPS references, not offline copies; imported text is never rendered as HTML.
 
 ## Interface language
 

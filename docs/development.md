@@ -42,7 +42,7 @@ The CLI is a dev dependency, so use `npx openspec ...` (or the npm scripts). Can
 - `vite.config.ts` aliases `@lit/react` to its browser build for tests. Without it Vitest resolves the SSR build, which silently never attaches `onIonInput`/`onIonChange` handlers.
 - Each test creates a uniquely named Dexie database on top of `fake-indexeddb`.
 - Recipe import tests use synthetic JSON-LD fixtures and do not depend on network access. The Playwright recipe flow blocks the sample image request.
-- The same URL plus page-source paste workflow is used on web, Android and iOS; native device verification requires the corresponding platform tools and a device or emulator.
+- Web recipe import uses a URL plus pasted page source; Android and iOS use native URL-only downloads through the bounded RecipePage plugin. Android URL-only import was verified by the user; iOS device verification remains outstanding and requires macOS/Xcode and an iOS device or simulator.
 
 ## Native platforms (Capacitor)
 
