@@ -4,7 +4,7 @@ const pageSource = `<script type="application/ld+json">${JSON.stringify({
   '@type': 'Recipe',
   name: 'Lentil soup',
   recipeYield: 4,
-  recipeIngredient: ['200 g lentils', 'salt to taste'],
+  recipeIngredient: ['2count Pan de molde', '1count Huevos', '200 g lentils', 'salt to taste'],
   recipeInstructions: 'Cook gently.',
   image: 'https://images.example.com/soup.jpg',
 })}</script>`;
@@ -20,12 +20,27 @@ test('imports, reviews and persists a recipe from pasted page source', async ({ 
   await page.getByLabel('Page source').fill(pageSource);
   await page.getByRole('button', { name: 'Review recipe' }).click();
   await expect(page.getByLabel('Title')).toHaveValue('Lentil soup');
-  await expect(page.getByText('Original ingredient: salt to taste')).toBeVisible();
+  await expect(page.getByText('Original ingredient: 2count Pan de molde')).toBeVisible();
+  await expect(page.getByText('Original ingredient: 1count Huevos')).toBeVisible();
+  const firstIngredient = page.getByRole('group', { name: 'Ingredients 1' });
+  await expect(firstIngredient.getByLabel('Ingredient name')).toHaveValue('Pan de molde');
+  await expect(firstIngredient.getByLabel('Amount for 1')).toHaveValue('2');
+  await expect(firstIngredient.getByLabel('Unit for 1')).toHaveValue('whole');
+  await expect(
+    firstIngredient.getByRole('checkbox', { name: 'I have reviewed this ingredient' }),
+  ).toBeChecked();
+  const secondCountIngredient = page.getByRole('group', { name: 'Ingredients 2' });
+  await expect(secondCountIngredient.getByLabel('Ingredient name')).toHaveValue('Huevos');
+  await expect(secondCountIngredient.getByLabel('Amount for 2')).toHaveValue('1');
+  await expect(secondCountIngredient.getByLabel('Unit for 2')).toHaveValue('whole');
+  await expect(
+    secondCountIngredient.getByRole('checkbox', { name: 'I have reviewed this ingredient' }),
+  ).toBeChecked();
   await page.getByRole('button', { name: 'Save recipe' }).click();
   await expect(page.getByText('Review and confirm this ingredient.')).toBeVisible();
-  const secondIngredient = page.getByRole('group', { name: 'Ingredients 2' });
-  await secondIngredient.getByLabel('Ingredient name').fill('salt');
-  await secondIngredient.getByRole('checkbox', { name: 'I have reviewed this ingredient' }).check();
+  const fourthIngredient = page.getByRole('group', { name: 'Ingredients 4' });
+  await fourthIngredient.getByLabel('Ingredient name').fill('salt');
+  await fourthIngredient.getByRole('checkbox', { name: 'I have reviewed this ingredient' }).check();
   await page.getByRole('button', { name: 'Save recipe' }).click();
   await expect(page.getByRole('button', { name: 'Lentil soup' })).toBeVisible();
   await page.reload();
@@ -33,6 +48,8 @@ test('imports, reviews and persists a recipe from pasted page source', async ({ 
   await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
   await page.getByRole('button', { name: 'Lentil soup' }).click();
   await expect(page.getByRole('heading', { name: 'Lentil soup' })).toBeVisible();
+  await expect(page.getByText('Pan de molde — 2 whole')).toBeVisible();
+  await expect(page.getByText('Huevos — 1 whole')).toBeVisible();
   await expect(page.getByText('lentils — 200 grams')).toBeVisible();
   await expect(page.getByText('salt', { exact: true })).toBeVisible();
   await expect(page.getByText('Cook gently.')).toBeVisible();
