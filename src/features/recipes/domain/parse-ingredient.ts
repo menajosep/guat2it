@@ -22,6 +22,7 @@ const units: Readonly<Record<string, UnitId>> = {
   cucharaditas: 'teaspoon',
   diente: 'clove',
   dientes: 'clove',
+  count: 'whole',
   unidad: 'whole',
   unidades: 'whole',
 };

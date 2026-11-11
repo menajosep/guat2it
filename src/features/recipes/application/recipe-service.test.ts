@@ -1,4 +1,5 @@
 import { fail, ok } from '../../../shared/types/result';
+import { extractRecipe } from '../infrastructure/extract-recipe';
 import { MAX_SOURCE_BYTES, RecipeService, isSupportedSourceUrl } from './recipe-service';
 import type { RecipeExtractor, RecipeStore } from './recipe-ports';
 
@@ -45,6 +46,42 @@ describe('RecipeService', () => {
         sourceUrl,
         title: 'Soup',
         ingredients: [{ source: '200 g lentils', confirmed: true }],
+      },
+    });
+  });
+
+  it('extracts and parses count quantities from structured recipe data', () => {
+    const { store } = service();
+    const instance = new RecipeService(store, extractRecipe, () => 'id');
+    const pageSource = `<script type="application/ld+json">${JSON.stringify({
+      '@type': 'Recipe',
+      name: 'Pan',
+      recipeIngredient: ['2count Pan de molde', '1count Huevos', '200 g Leche'],
+    })}</script>`;
+
+    expect(instance.import(sourceUrl, pageSource)).toMatchObject({
+      ok: true,
+      value: {
+        ingredients: [
+          {
+            source: '2count Pan de molde',
+            name: 'Pan de molde',
+            quantity: { amount: '2', unit: 'whole' },
+            confirmed: true,
+          },
+          {
+            source: '1count Huevos',
+            name: 'Huevos',
+            quantity: { amount: '1', unit: 'whole' },
+            confirmed: true,
+          },
+          {
+            source: '200 g Leche',
+            name: 'Leche',
+            quantity: { amount: '200', unit: 'gram' },
+            confirmed: true,
+          },
+        ],
       },
     });
   });
