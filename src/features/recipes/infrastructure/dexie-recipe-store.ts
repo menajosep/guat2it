@@ -30,4 +30,15 @@ export class DexieRecipeStore implements RecipeStore {
       await this.db.recipes.add(recipe);
     });
   }
+
+  remove(id: string): Promise<boolean> {
+    return guard('remove-recipe', () =>
+      this.db.transaction('rw', this.db.recipes, async () => {
+        const recipe = await this.db.recipes.get(id);
+        if (!recipe) return false;
+        await this.db.recipes.delete(id);
+        return true;
+      }),
+    );
+  }
 }

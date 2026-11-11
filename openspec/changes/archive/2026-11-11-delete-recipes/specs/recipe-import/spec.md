@@ -1,0 +1,35 @@
+## MODIFIED Requirements
+
+### Requirement: View and persist recipes locally
+
+The system SHALL list saved recipes and let the user open a recipe to view its title, yield, ingredients, instructions and picture. Recipes MUST survive reload or restart and remain local to the installation. Unavailable pictures MUST have an accessible fallback without hiding the rest of the recipe. A database upgrade MUST preserve existing shopping items and categories. The user MUST be able to request deletion of a saved recipe from its detail view, and the system MUST require explicit confirmation before deleting it. Canceling confirmation MUST leave the recipe unchanged. After confirmed deletion succeeds, the recipe MUST no longer appear in the saved recipe list. If deletion fails, the system MUST announce an accessible error and MUST NOT claim that the recipe was deleted.
+
+#### Scenario: Reopen a recipe
+
+- **WHEN** a user saves a recipe and reloads the app
+- **THEN** the recipe is listed and its saved details can be opened
+
+#### Scenario: Picture unavailable
+
+- **WHEN** the saved picture cannot be loaded
+- **THEN** an accessible fallback is shown and the recipe's other details remain available
+
+#### Scenario: Upgrade with existing data
+
+- **WHEN** an installation with shopping items and categories upgrades
+- **THEN** its existing data remains unchanged and recipes can be saved
+
+#### Scenario: Confirm recipe deletion
+
+- **WHEN** a user requests deletion of a saved recipe and confirms the action
+- **THEN** that recipe is removed from local storage and no longer appears in the recipe list
+
+#### Scenario: Cancel recipe deletion
+
+- **WHEN** a user requests deletion of a saved recipe and cancels confirmation
+- **THEN** the recipe remains saved and available in its detail view
+
+#### Scenario: Recipe deletion fails
+
+- **WHEN** local storage fails while deleting a confirmed recipe
+- **THEN** an accessible error is shown, the recipe remains available in the detail view, and the app does not report it as deleted

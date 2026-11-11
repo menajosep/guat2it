@@ -57,14 +57,31 @@ describe('DexieRecipeStore', () => {
     db.close();
   });
 
+  it('removes an existing recipe and reports when it is already missing', async () => {
+    const db = new AppDatabase(uniqueName());
+    const store = new DexieRecipeStore(db);
+    await store.save(recipe);
+
+    await expect(store.remove(recipe.id)).resolves.toBe(true);
+    await expect(store.get(recipe.id)).resolves.toBeUndefined();
+    await expect(store.remove(recipe.id)).resolves.toBe(false);
+    db.close();
+  });
+
   it('wraps load and save failures with their original cause', async () => {
     const db = new AppDatabase(uniqueName());
     const store = new DexieRecipeStore(db);
     const error = new Error('Storage unavailable');
+    await store.save(recipe);
     vi.spyOn(db.recipes, 'toArray').mockRejectedValue(error);
     vi.spyOn(db.recipes, 'add').mockRejectedValue(error);
+    vi.spyOn(db.recipes, 'delete').mockRejectedValue(error);
     await expect(store.list()).rejects.toMatchObject({ action: 'load-recipes', cause: error });
     await expect(store.save(recipe)).rejects.toMatchObject({ action: 'save-recipe', cause: error });
+    await expect(store.remove(recipe.id)).rejects.toMatchObject({
+      action: 'remove-recipe',
+      cause: error,
+    });
     db.close();
   });
 });

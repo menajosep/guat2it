@@ -11,6 +11,12 @@ export interface RecipeMessages {
   readonly extract: string;
   readonly downloading: string;
   readonly back: string;
+  readonly delete: string;
+  readonly deleteTitle: string;
+  readonly deleteConfirmation: (title: string) => string;
+  readonly deleteConfirm: string;
+  readonly deleteFailed: string;
+  readonly deleteUnexpected: string;
   readonly title: string;
   readonly yield: string;
   readonly ingredients: string;
@@ -57,6 +63,13 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     extract: 'Review recipe',
     downloading: 'Downloading recipe',
     back: 'Back to recipes',
+    delete: 'Delete recipe',
+    deleteTitle: 'Delete recipe?',
+    deleteConfirmation: (title) =>
+      `Are you sure you want to delete “${title}”? This cannot be undone.`,
+    deleteConfirm: 'Delete',
+    deleteFailed: 'Could not delete the recipe because local storage failed.',
+    deleteUnexpected: 'Could not delete the recipe. Please try again.',
     title: 'Title',
     yield: 'Yield',
     ingredients: 'Ingredients',
@@ -102,6 +115,13 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     extract: 'Revisar receta',
     downloading: 'Descargando receta',
     back: 'Volver a recetas',
+    delete: 'Eliminar receta',
+    deleteTitle: '¿Eliminar receta?',
+    deleteConfirmation: (title) =>
+      `¿Seguro que quieres eliminar «${title}»? Esta acción no se puede deshacer.`,
+    deleteConfirm: 'Eliminar',
+    deleteFailed: 'No se pudo eliminar la receta porque falló el almacenamiento local.',
+    deleteUnexpected: 'No se pudo eliminar la receta. Inténtalo de nuevo.',
     title: 'Título',
     yield: 'Raciones',
     ingredients: 'Ingredientes',
@@ -148,6 +168,13 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     extract: 'Revisa la recepta',
     downloading: 'Descarregant la recepta',
     back: 'Torna a les receptes',
+    delete: 'Suprimeix la recepta',
+    deleteTitle: 'Vols suprimir la recepta?',
+    deleteConfirmation: (title) =>
+      `Segur que vols suprimir «${title}»? Aquesta acció no es pot desfer.`,
+    deleteConfirm: 'Suprimeix',
+    deleteFailed: "No s'ha pogut suprimir la recepta perquè ha fallat l'emmagatzematge local.",
+    deleteUnexpected: "No s'ha pogut suprimir la recepta. Torna-ho a provar.",
     title: 'Títol',
     yield: 'Racions',
     ingredients: 'Ingredients',
