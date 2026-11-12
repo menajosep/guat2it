@@ -102,7 +102,7 @@ The system SHALL remember the language the user chose on that device and use it 
 
 ### Requirement: Language-independent stored data
 
-The system SHALL store only language-independent data. Units MUST be stored as their stable identifiers, never as translated text, so that an item's unit is shown in whichever language is selected. Switching languages MUST NOT require a data migration.
+The system SHALL store only language-independent data. Units MUST be stored as their stable identifiers, never as translated text, so that an item's unit is shown in whichever language is selected. Switching languages MUST NOT require a data migration. Unit selectors in shopping-item and recipe-ingredient forms SHALL list unit names alphabetically according to the selected language, with the no-unit choice first.
 
 #### Scenario: Unit shown in the selected language
 
@@ -111,8 +111,13 @@ The system SHALL store only language-independent data. Units MUST be stored as t
 
 #### Scenario: Unit selector in the selected language
 
-- **WHEN** the user opens the unit selector while the interface is in Spanish
-- **THEN** every unit of the list is offered with its Spanish name, in the same order as in English
+- **WHEN** the user opens a shopping-item or recipe-ingredient unit selector in English, Spanish or Catalan
+- **THEN** the no-unit choice appears first and every other unit is offered in alphabetical order by its name in the selected language
+
+#### Scenario: Changing language with a selected unit
+
+- **WHEN** the user selects a unit in a quantity form and switches the interface language
+- **THEN** the selected unit and typed amount remain unchanged and the unit choices reorder alphabetically using the new language
 
 #### Scenario: Singular and plural
 

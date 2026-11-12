@@ -1,4 +1,5 @@
 import { IonInput, IonNote } from '@ionic/react';
+import { useLanguage } from '../../language/hooks/language-context';
 import type { QuantityDraft, QuantityError } from '../domain/quantity';
 import { isUnitId, UNIT_IDS, UNITS } from '../domain/units';
 import { useShoppingListMessages } from '../hooks/use-shopping-list-messages';
@@ -20,6 +21,13 @@ export function QuantityFields({
   onChange,
 }: QuantityFieldsProps) {
   const messages = useShoppingListMessages();
+  const { language } = useLanguage();
+  const collator = new Intl.Collator(language);
+  const sortedUnitIds = [...UNIT_IDS].sort(
+    (first, second) =>
+      collator.compare(messages.units[first].singular, messages.units[second].singular) ||
+      first.localeCompare(second, 'en'),
+  );
   const amountDisabled = value.unit !== undefined && !UNITS[value.unit].takesAmount;
   const errorId = `${idPrefix}-quantity-error`;
   const unitId = `${idPrefix}-unit`;
@@ -56,7 +64,7 @@ export function QuantityFields({
             }}
           >
             <option value="">{messages.noUnit}</option>
-            {UNIT_IDS.map((id) => (
+            {sortedUnitIds.map((id) => (
               <option key={id} value={id}>
                 {messages.units[id].singular}
               </option>

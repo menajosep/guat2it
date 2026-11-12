@@ -153,6 +153,40 @@ it('validates, saves and edits countable ingredient units with localized display
   expect(await screen.findByText('lentils — 2 unitats')).toBeInTheDocument();
 });
 
+it('preserves ingredient quantities when changing the language and saves them', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  await openRecipes(user);
+  await startReview(user);
+  const first = screen.getByRole('group', { name: 'Ingredients 1' });
+  const amount = await waitFor(() => {
+    const input = first.querySelector<HTMLInputElement>('ion-input input');
+    if (!input) throw new Error('Ingredient amount input not rendered');
+    return input;
+  });
+  await user.selectOptions(within(first).getByLabelText('Unit for 1'), 'tablespoon');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  const selector = within(first).getByLabelText('Unidad para 1');
+  expect(selector).toHaveValue('tablespoon');
+  expect(amount).toHaveValue('200');
+  const labels = Array.from(selector.querySelectorAll('option'))
+    .slice(1)
+    .map((option) => option.textContent);
+  expect(labels).toEqual([...labels].sort(new Intl.Collator('es').compare));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'en');
+  const second = screen.getByRole('group', { name: 'Ingredients 2' });
+  await user.clear(within(second).getByLabelText('Ingredient name'));
+  await user.type(within(second).getByLabelText('Ingredient name'), 'salt');
+  await user.click(
+    within(second).getByRole('checkbox', { name: 'I have reviewed this ingredient' }),
+  );
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+  await screen.findByRole('button', { name: 'Lentil soup' });
+  expect(await recipes.list()).toMatchObject([
+    { ingredients: [{ amount: 200, unit: 'tablespoon' }, { name: 'salt' }] },
+  ]);
+});
+
 it('keeps the review draft on storage failure and translates it when language changes', async () => {
   const user = userEvent.setup();
   const { recipes } = renderApp();

@@ -7,8 +7,8 @@ const counted: UnitDefinition = { takesAmount: true };
 const vague: UnitDefinition = { takesAmount: false };
 
 /**
- * The ids are stored in the database, so never rename one. Keys are in the order shown to the
- * user. Display names live in the message catalogs, one per language.
+ * The ids are stored in the database, so never rename one. Display names live in the message
+ * catalogs, one per language.
  */
 export const UNITS = {
   'to-taste': vague,

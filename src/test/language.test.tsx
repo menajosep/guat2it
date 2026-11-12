@@ -170,16 +170,50 @@ describe('interface language', () => {
     expect(stored.map((item) => item.unit)).toEqual(['tablespoon', 'to-taste']);
   });
 
-  it('offers the unit names in the selected language in the same order', async () => {
+  it('sorts all unit names alphabetically in each selected language', async () => {
     const user = userEvent.setup();
     renderApp();
+
+    for (const [language, unitLabel, emptyLabel] of [
+      ['en', 'Unit', 'No unit'],
+      ['es', 'Unidad', 'Sin unidad'],
+      ['ca', 'Unitat', 'Sense unitat'],
+    ] as const) {
+      if (language === 'es') await choose(user, 'Language', 'Español');
+      if (language === 'ca') await choose(user, 'Idioma', 'Català');
+      const units = await screen.findByRole('combobox', { name: unitLabel });
+      const options = Array.from(units.querySelectorAll('option'));
+      expect(options).toHaveLength(41);
+      expect(options[0]).toHaveTextContent(emptyLabel);
+      expect(options[0]).toHaveValue('');
+      const labels = options.slice(1).map((option) => option.textContent);
+      const collator = new Intl.Collator(language);
+      expect(labels).toEqual([...labels].sort(collator.compare));
+      expect(new Set(options.slice(1).map((option) => option.value)).size).toBe(40);
+      if (language === 'ca') expect(labels).toContain('mil·lilitre');
+    }
+  });
+
+  it('preserves the shopping quantity when a language change reorders the options', async () => {
+    const user = userEvent.setup();
+    const { service } = renderApp();
+    await user.type(await nameInput(), 'Flour');
+    const amount = await waitFor(() => {
+      const input = document.querySelectorAll<HTMLInputElement>('ion-input input')[1];
+      if (!input) throw new Error('Amount input not rendered');
+      return input;
+    });
+    await user.type(amount, '2');
+    await user.selectOptions(await languageSelect('Unit'), 'tablespoon');
     await choose(user, 'Language', 'Español');
-    const units = await screen.findByRole('combobox', { name: 'Unidad' });
-    const labels = Array.from(units.querySelectorAll('option')).map((o) => o.textContent);
-    expect(labels.slice(0, 4)).toEqual(['Sin unidad', 'al gusto', 'un poco', 'barra']);
-    expect(labels).toHaveLength(41);
-    expect(labels.at(-1)).toBe('unidad');
-    expect(screen.getByRole('combobox', { name: 'Unidad' })).toBeInTheDocument();
+    expect(await languageSelect('Unidad')).toHaveValue('tablespoon');
+    expect(amount).toHaveValue('2');
+    await choose(user, 'Idioma', 'Català');
+    expect(await languageSelect('Unitat')).toHaveValue('tablespoon');
+    expect(amount).toHaveValue('2');
+    await user.click(screen.getByText('Afegeix un article'));
+    expect(await screen.findByText('2 cullerades')).toBeInTheDocument();
+    expect(await service.list()).toMatchObject([{ name: 'Flour', amount: 2, unit: 'tablespoon' }]);
   });
 
   it('words validation and operation messages in the selected language', async () => {
