@@ -1,4 +1,4 @@
-import { useIonViewWillEnter } from '@ionic/react';
+import { IonAlert, useIonViewWillEnter, useIonViewWillLeave } from '@ionic/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLanguage } from '../../language/hooks/language-context';
 import { useShoppingListMessages } from '../../shopping-list/hooks/use-shopping-list-messages';
@@ -16,6 +16,9 @@ export function MenuSlots({ menu }: { menu: WeeklyMenu }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error' | 'missing'>('loading');
   const [removeError, setRemoveError] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [pending, setPending] = useState<{ assignment: AssignedRecipe; date: Date } | null>(null);
+  const pendingRef = useRef<{ assignment: AssignedRecipe; date: Date } | null>(null);
+  const removingRef = useRef(false);
   const version = useRef(0);
 
   const load = useCallback(() => {
@@ -41,15 +44,21 @@ export function MenuSlots({ menu }: { menu: WeeklyMenu }) {
     void load();
     return () => {
       version.current += 1;
+      pendingRef.current = null;
     };
   }, [load]);
   useIonViewWillEnter(() => {
     setStatus('loading');
     void load();
   }, [load]);
+  useIonViewWillLeave(() => {
+    pendingRef.current = null;
+    setPending(null);
+  }, []);
 
   const remove = async (item: AssignedRecipe) => {
-    if (removing) return;
+    if (removingRef.current) return;
+    removingRef.current = true;
     setRemoving(true);
     setRemoveError(false);
     try {
@@ -73,6 +82,7 @@ export function MenuSlots({ menu }: { menu: WeeklyMenu }) {
       console.error('Unable to remove menu assignment', error);
       setRemoveError(true);
     } finally {
+      removingRef.current = false;
       setRemoving(false);
     }
   };
@@ -107,6 +117,34 @@ export function MenuSlots({ menu }: { menu: WeeklyMenu }) {
         {messages.selected}: {menu.name} — {menu.startDate}
       </h2>
       {removeError && <p role="alert">{messages.removeFailed}</p>}
+      <IonAlert
+        isOpen={pending !== null}
+        header={
+          pending
+            ? messages.removeConfirmation(
+                pending.assignment.title,
+                formatMenuDay(pending.date, language),
+                messages.meals[pending.assignment.meal],
+              )
+            : ''
+        }
+        buttons={[
+          { text: messages.removeCancel, role: 'cancel' },
+          {
+            text: messages.removeConfirm,
+            role: 'destructive',
+            handler: () => {
+              const target = pendingRef.current;
+              pendingRef.current = null;
+              if (target) void remove(target.assignment);
+            },
+          },
+        ]}
+        onDidDismiss={() => {
+          pendingRef.current = null;
+          setPending(null);
+        }}
+      />
       {menuDays(menu.startDate).map((date, offset) => (
         <section key={offset}>
           <h3>{formatMenuDay(date, language)}</h3>
@@ -124,7 +162,15 @@ export function MenuSlots({ menu }: { menu: WeeklyMenu }) {
                     {slot.map((item) => (
                       <li key={item.recipeId}>
                         {item.title}{' '}
-                        <button type="button" disabled={removing} onClick={() => void remove(item)}>
+                        <button
+                          type="button"
+                          disabled={removing || pending !== null}
+                          onClick={() => {
+                            const target = { assignment: item, date };
+                            pendingRef.current = target;
+                            setPending(target);
+                          }}
+                        >
                           {messages.remove(item.title)}
                         </button>
                       </li>

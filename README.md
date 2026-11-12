@@ -8,7 +8,7 @@ Implemented: a **local shopping list** — add items with an optional amount, un
 
 The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
 
-Use **Weekly menus** in the toolbar menu to create a named local menu with a chosen start date. The date starts at today; changing it resets the name to the suggested name. Multiple menus can share a start date. Select a saved menu, then open a saved recipe under **Recipes** and add it to a day and lunch or dinner. A meal can contain multiple recipes, but not the same recipe twice. Remove assignments from the selected weekly menu. A recipe cannot be deleted until all its assignments are removed. Assignments remain on the device, while the selected menu is cleared on reload or restart.
+Use **Weekly menus** in the toolbar menu to create a named local menu with a chosen start date. The date starts at today; changing it resets the name to the suggested name. Multiple menus can share a start date. Select a saved menu, then open a saved recipe under **Recipes** and add it to a day and lunch or dinner. A meal can contain multiple recipes, but not the same recipe twice. Remove an assignment from the selected weekly menu by confirming the prompt; canceling leaves it unchanged. The recipe and its other assignments are not removed. A recipe cannot be deleted until all its assignments are removed. Assignments remain on the device, while the selected menu is cleared on reload or restart.
 
 Not implemented (yet): shopping lists generated from recipes, sync, accounts.
 
