@@ -87,6 +87,7 @@ export const en: ShoppingListMessages = {
     cup: { singular: 'cup', plural: 'cups' },
     shaving: { singular: 'shaving', plural: 'shavings' },
     glass: { singular: 'glass', plural: 'glasses' },
+    unit: { singular: 'unit', plural: 'units' },
   },
   itemNameErrors: {
     empty: 'Enter an item name.',

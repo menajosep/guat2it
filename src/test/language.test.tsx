@@ -177,7 +177,8 @@ describe('interface language', () => {
     const units = await screen.findByRole('combobox', { name: 'Unidad' });
     const labels = Array.from(units.querySelectorAll('option')).map((o) => o.textContent);
     expect(labels.slice(0, 4)).toEqual(['Sin unidad', 'al gusto', 'un poco', 'barra']);
-    expect(labels).toHaveLength(40);
+    expect(labels).toHaveLength(41);
+    expect(labels.at(-1)).toBe('unidad');
     expect(screen.getByRole('combobox', { name: 'Unidad' })).toBeInTheDocument();
   });
 

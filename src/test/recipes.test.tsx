@@ -103,6 +103,56 @@ it('retains unresolved ingredients, requires confirmation, and saves the correct
   ]);
 });
 
+it('validates, saves and edits countable ingredient units with localized display', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  await openRecipes(user);
+  await startReview(user);
+
+  const first = screen.getByRole('group', { name: 'Ingredients 1' });
+  const amount = await waitFor(() => {
+    const input = first.querySelector<HTMLInputElement>('ion-input input');
+    if (!input) throw new Error('Ingredient amount input not rendered');
+    return input;
+  });
+  await user.clear(amount);
+  await user.selectOptions(within(first).getByLabelText('Unit for 1'), 'unit');
+  const second = screen.getByRole('group', { name: 'Ingredients 2' });
+  await user.clear(within(second).getByLabelText('Ingredient name'));
+  await user.type(within(second).getByLabelText('Ingredient name'), 'salt');
+  await user.click(
+    within(second).getByRole('checkbox', { name: 'I have reviewed this ingredient' }),
+  );
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+  expect(await within(first).findByText('Enter an amount for this unit.')).toBeInTheDocument();
+  expect(await recipes.list()).toEqual([]);
+
+  await user.type(amount, '1');
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+  await user.click(await screen.findByRole('button', { name: 'Lentil soup' }));
+  expect(await screen.findByText('lentils — 1 unit')).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  const edit = screen.getByRole('group', { name: 'Ingredients 1' });
+  expect(within(edit).getByLabelText('Unit for 1')).toHaveValue('unit');
+  const editAmount = await waitFor(() => {
+    const input = edit.querySelector<HTMLInputElement>('ion-input input');
+    if (!input) throw new Error('Ingredient amount input not rendered');
+    return input;
+  });
+  await user.clear(editAmount);
+  await user.type(editAmount, '2');
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+  expect(await screen.findByText('lentils — 2 units')).toBeInTheDocument();
+  expect(await recipes.list()).toMatchObject([
+    { ingredients: [{ amount: 2, unit: 'unit' }, { name: 'salt' }] },
+  ]);
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(await screen.findByText('lentils — 2 unidades')).toBeInTheDocument();
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'ca');
+  expect(await screen.findByText('lentils — 2 unitats')).toBeInTheDocument();
+});
+
 it('keeps the review draft on storage failure and translates it when language changes', async () => {
   const user = userEvent.setup();
   const { recipes } = renderApp();
