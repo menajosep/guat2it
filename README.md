@@ -20,6 +20,8 @@ Review the title, yield, ingredients, instructions and picture before saving. In
 
 For individual items, select the countable unit ("unit", "unidad" or "unitat") and enter an amount. It is also available for shopping-list items. Existing imported `count`, `unidad` and `unidades` quantities continue to use the separate "whole" unit; you can change the choice during review.
 
+Unit choices are listed alphabetically in the selected language, after the option to leave the unit empty.
+
 Recipes are stored locally, but pictures are referenced by their HTTPS URLs rather than saved offline. Displaying a picture contacts its host and needs network access; if it is unavailable the other recipe details remain accessible. Native downloads accept up to 5 MiB and restrict requests and redirects to the supported Directo al Paladar hosts.
 
 To edit a saved recipe, open it from the recipe list and select **Edit recipe**. Changes are validated before saving; canceling leaves the saved recipe unchanged.
