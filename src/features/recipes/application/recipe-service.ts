@@ -68,8 +68,9 @@ export class RecipeService {
     return this.store.list();
   }
 
-  async remove(id: string): Promise<Result<void, 'not-found'>> {
+  async remove(id: string): Promise<Result<void, 'not-found' | 'in-use'>> {
     const removed = await this.store.remove(id);
+    if (removed === 'in-use') return fail('in-use');
     return removed ? ok(undefined) : fail('not-found');
   }
 

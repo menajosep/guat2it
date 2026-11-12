@@ -42,6 +42,8 @@ The app shell exposes a side menu for the shopping-list, Recipes, Weekly menus a
 
 Weekly menus store a name and a calendar start date in a separate local table. Their date is stored as an ISO date rather than a timestamp so time-zone conversions cannot shift the chosen day. A versioned database upgrade preserves existing shopping, category and recipe data.
 
+The active menu is held only in app-session state. Assignments store menu and recipe IDs, a zero-based day offset, and a lunch/dinner identifier in a separate table with a unique compound key. Assignment creation and recipe deletion use overlapping transactions to prevent duplicates and dangling recipe references; a recipe in use must first be removed from all menus. Slot displays resolve current recipe titles, and creation returns the slot contents from the write transaction for confirmation.
+
 Recipe import processes a user-supplied URL locally: web users paste the page source, while Android and iOS use the bounded native RecipePage downloader with validated redirects. The size-limited application service and inert JSON-LD extractor build a review draft that preserves unresolved ingredient text; validated ingredients reuse shopping-list name and quantity rules. A complete recipe is written as one record, and errors retain the draft. Pictures are remote HTTPS references, not offline copies; imported text is never rendered as HTML.
 
 ## Interface language
