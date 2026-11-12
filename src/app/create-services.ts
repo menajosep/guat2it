@@ -6,6 +6,8 @@ import { RecipeService } from '../features/recipes/application/recipe-service';
 import { DexieRecipeStore } from '../features/recipes/infrastructure/dexie-recipe-store';
 import { extractRecipe } from '../features/recipes/infrastructure/extract-recipe';
 import { NativeRecipeSourceReader } from '../features/recipes/infrastructure/native-recipe-source-reader';
+import { WeeklyMenuService } from '../features/weekly-menus/application/weekly-menu-service';
+import { DexieWeeklyMenuStore } from '../features/weekly-menus/infrastructure/dexie-weekly-menu-store';
 import { AppDatabase, DATABASE_NAME } from '../infrastructure/persistence/app-database';
 import { generateId } from '../shared/utils/generate-id';
 
@@ -22,6 +24,10 @@ export function createShoppingListService(
 
 export function createLanguageService(storage: Storage = localStorage): LanguageService {
   return new LanguageService(new LocalStorageLanguagePreferenceStore(storage));
+}
+
+export function createWeeklyMenuService(databaseName: string = DATABASE_NAME): WeeklyMenuService {
+  return new WeeklyMenuService(new DexieWeeklyMenuStore(new AppDatabase(databaseName)), generateId);
 }
 
 export function createRecipeService(databaseName: string = DATABASE_NAME): RecipeService {

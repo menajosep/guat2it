@@ -8,7 +8,9 @@ Implemented: a **local shopping list** — add items with an optional amount, un
 
 The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
 
-Not implemented (yet): meal planning, shopping lists generated from recipes, sync, accounts.
+Use **Weekly menus** in the toolbar menu to create a named local menu with a chosen start date. The date starts at today; changing it resets the name to the suggested name. Multiple menus can share a start date. Saved menus remain on the device; assigning meals or recipes to them is not yet available.
+
+Not implemented (yet): assigning meals to menus, shopping lists generated from recipes, sync, accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
 
@@ -103,6 +105,7 @@ src/
     hooks/ components/ pages/   React + Ionic UI
     messages/               texts per language (en, es, ca)
   features/recipes/         local recipe import, review, persistence and display
+  features/weekly-menus/    local weekly-menu creation and listing
   infrastructure/persistence/   Dexie database and schema versions
   shared/                   Result, PersistenceError, generateId
   test/                     test setup and UI-flow tests

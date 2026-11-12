@@ -1,6 +1,6 @@
 # Architecture
 
-Guat2it is a modular monolith: one TypeScript code base, organized by feature, with business rules kept separate from persistence and UI. It contains shopping list, recipes and interface language features.
+Guat2it is a modular monolith: one TypeScript code base, organized by feature, with business rules kept separate from persistence and UI. It contains shopping list, recipes, weekly menus and interface language features.
 
 ## Layers and dependency direction
 
@@ -20,6 +20,7 @@ src/app (composition root) wires infrastructure into application
 | `src/features/shopping-list/components/`, `pages/` | Ionic UI. Rendering and interaction only.                                                                                                                                                                                                         | hooks, domain types                                  |
 | `src/features/language/`                           | Supported languages and detection (`domain`), `LanguageService` and its `LanguagePreferenceStore` port (`application`), the `localStorage` adapter (`infrastructure`), `LanguageProvider`/`useLanguage` and the selector (`hooks`, `components`). | shared, React/Ionic in UI only                       |
 | `src/features/recipes/`                            | Recipe validation and ingredient mapping, local import service and ports, JSON-LD extraction, Dexie adapter, and recipe UI.                                                                                                                       | shared, shopping-list domain, React/Ionic in UI only |
+| `src/features/weekly-menus/`                       | Calendar-date and name validation, local creation service and port, Dexie adapter, and weekly-menu UI.                                                                                                                                            | shared, React/Ionic in UI only                       |
 | `src/infrastructure/persistence/`                  | Shared Dexie `AppDatabase` (schema and versions).                                                                                                                                                                                                 | domain types                                         |
 | `src/app/`                                         | `App` shell and routes; `create-services.ts` composition root.                                                                                                                                                                                    | everything                                           |
 | `src/shared/`                                      | `Result`, `PersistenceError`, `generateId`.                                                                                                                                                                                                       | nothing                                              |
@@ -37,7 +38,9 @@ Expected failures (invalid names) are `Result` values and are shown next to the 
 
 Categories are managed by the shopping-list service and stored independently by ID. Items contain zero or more category IDs; grouping is derived for display, so repeated rows represent one item and counts remain unique. Loading the two tables uses one read transaction for a consistent view. Saving assignments and deleting categories use transactions spanning both tables to prevent dangling references; duplicate category names are checked in the category write transaction.
 
-The app shell exposes a side menu for the shopping-list, Recipes and Admin routes. Category management lives on Admin; item assignment remains on the list. Shopping and Admin pages use the same service and reload a snapshot when entered, so cached Ionic pages reflect changes made on the other screen. Admin is a local settings screen, not an authenticated role.
+The app shell exposes a side menu for the shopping-list, Recipes, Weekly menus and Admin routes. Category management lives on Admin; item assignment remains on the list. Shopping and Admin pages use the same service and reload a snapshot when entered, so cached Ionic pages reflect changes made on the other screen. Admin is a local settings screen, not an authenticated role.
+
+Weekly menus store a name and a calendar start date in a separate local table. Their date is stored as an ISO date rather than a timestamp so time-zone conversions cannot shift the chosen day. A versioned database upgrade preserves existing shopping, category and recipe data.
 
 Recipe import processes a user-supplied URL locally: web users paste the page source, while Android and iOS use the bounded native RecipePage downloader with validated redirects. The size-limited application service and inert JSON-LD extractor build a review draft that preserves unresolved ingredient text; validated ingredients reuse shopping-list name and quantity rules. A complete recipe is written as one record, and errors retain the draft. Pictures are remote HTTPS references, not offline copies; imported text is never rendered as HTML.
 
@@ -50,7 +53,7 @@ To add a text: add it to the feature's messages interface and to all three catal
 ## Data model
 
 `ShoppingItem { id, name, completed, createdAt, amount?, unit?, categoryIds? }` and `Category { id, name }`. Names are trimmed and limited to 100 characters; category names are unique ignoring case. `Recipe` contains an ID, source URL, title, yield, ordered ingredients, instructions and image URL. Ingredients use compatible names, amounts and units without sharing shopping-item lifecycle fields.
-IndexedDB database `guat2it`, schema version 3, has tables `shoppingItems` (primary key `id`, index `createdAt`), `categories` and `recipes` (primary key `id`). Existing items and categories are preserved, and version 1 items appear uncategorized. Changing the schema requires a new `version()` in `app-database.ts`.
+IndexedDB database `guat2it`, schema version 4, has tables `shoppingItems` (primary key `id`, index `createdAt`), `categories` and `recipes` (primary key `id`), and `weeklyMenus` (primary key `id`, index `startDate`). Existing items, categories and recipes are preserved, and version 1 items appear uncategorized. Changing the schema requires a new `version()` in `app-database.ts`.
 
 ## Persistence limits
 

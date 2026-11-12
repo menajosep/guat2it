@@ -6,6 +6,7 @@ import {
   createLanguageService,
   createRecipeService,
   createShoppingListService,
+  createWeeklyMenuService,
 } from '../app/create-services';
 import { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
 import { DexieShoppingItemStore } from '../features/shopping-list/infrastructure/dexie-shopping-item-store';
@@ -24,6 +25,7 @@ async function renderApp(databaseName: string) {
       shoppingListService={service}
       languageService={createLanguageService()}
       recipeService={createRecipeService(databaseName)}
+      weeklyMenuService={createWeeklyMenuService(databaseName)}
     />,
   );
   await screen.findByText(
@@ -170,6 +172,7 @@ async function renderSeededApp(
       shoppingListService={service}
       languageService={createLanguageService()}
       recipeService={createRecipeService(databaseName)}
+      weeklyMenuService={createWeeklyMenuService(databaseName)}
     />,
   );
   await screen.findByText(items[0]?.name ?? '');
@@ -799,6 +802,7 @@ describe('shopping list', () => {
         shoppingListService={service}
         languageService={createLanguageService()}
         recipeService={createRecipeService(uniqueDatabase('recipes'))}
+        weeklyMenuService={createWeeklyMenuService(uniqueDatabase('weekly-menus'))}
       />,
     );
 

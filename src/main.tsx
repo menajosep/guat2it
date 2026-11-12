@@ -6,6 +6,7 @@ import {
   createLanguageService,
   createRecipeService,
   createShoppingListService,
+  createWeeklyMenuService,
 } from './app/create-services';
 
 import '@ionic/react/css/core.css';
@@ -31,6 +32,7 @@ createRoot(container).render(
       shoppingListService={createShoppingListService()}
       languageService={createLanguageService()}
       recipeService={createRecipeService()}
+      weeklyMenuService={createWeeklyMenuService()}
     />
   </StrictMode>,
 );

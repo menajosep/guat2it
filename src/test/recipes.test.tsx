@@ -6,6 +6,7 @@ import {
   createLanguageService,
   createRecipeService,
   createShoppingListService,
+  createWeeklyMenuService,
 } from '../app/create-services';
 import { PersistenceError } from '../shared/errors/persistence-error';
 
@@ -34,6 +35,7 @@ function renderApp() {
       shoppingListService={createShoppingListService(database)}
       languageService={createLanguageService()}
       recipeService={recipes}
+      weeklyMenuService={createWeeklyMenuService(database)}
     />,
   );
   return { recipes, ...view };

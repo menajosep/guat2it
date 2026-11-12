@@ -4,12 +4,14 @@
 }
 
 .recipes form > label,
+.weekly-menus form > label,
 .recipes fieldset > label {
   display: block;
   margin-top: 0.75rem;
 }
 
 .recipes input:not([type='checkbox']),
+.weekly-menus input,
 .recipes textarea {
   box-sizing: border-box;
   width: 100%;
@@ -26,7 +28,8 @@
   min-height: 8rem;
 }
 
-.recipes button {
+.recipes button,
+.weekly-menus button {
   min-height: 2.75rem;
   margin: 0.5rem 0.5rem 0.5rem 0;
   padding: 0.5rem 0.75rem;
@@ -49,11 +52,13 @@
   height: auto;
 }
 
-.recipes [role='alert'] {
+.recipes [role='alert'],
+.weekly-menus [role='alert'] {
   color: var(--ion-color-danger);
 }
 
-.recipes :is(input, textarea, select, button):focus-visible {
+.recipes :is(input, textarea, select, button):focus-visible,
+.weekly-menus :is(input, button):focus-visible {
   outline: 3px solid var(--guat-focus-color);
   outline-offset: 2px;
 }

@@ -51,6 +51,24 @@ for (const scheme of ['light', 'dark'] as const) {
   test.describe(`${scheme} appearance`, () => {
     test.use({ colorScheme: scheme });
 
+    test('keeps weekly menu fields readable and focusable', async ({ page }) => {
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Open menu' }).click();
+      await page.locator('ion-menu').getByText('Weekly menus', { exact: true }).click();
+      const content = page
+        .locator('#main-content .ion-page:not(.ion-page-hidden) ion-content')
+        .locator('#background-content');
+      const name = page.getByLabel('Menu name');
+      const submit = page.getByRole('button', { name: 'Create weekly menu' });
+      await expect(name).toBeVisible();
+      await assertContrast(name, 'color', content, 4.5);
+      await assertContrast(name, 'borderTopColor', content, 3);
+      await assertContrast(submit, 'color', submit, 4.5);
+      await name.focus();
+      await expect(name).toHaveCSS('outline-style', 'solid');
+      await assertContrast(name, 'outlineColor', content, 3);
+    });
+
     test('preserves form and list state across system appearance changes', async ({ page }) => {
       await page.goto('/');
       await addItem(page, 'Milk');
