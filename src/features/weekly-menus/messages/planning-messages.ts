@@ -13,6 +13,9 @@ interface PlanningMessages {
   save: string;
   empty: string;
   remove: (title: string) => string;
+  removeConfirmation: (title: string, day: string, meal: string) => string;
+  removeConfirm: string;
+  removeCancel: string;
   confirmation: (day: string, meal: string) => string;
   duplicate: string;
   missingMenu: string;
@@ -36,6 +39,9 @@ export const planningMessages: Record<Language, PlanningMessages> = {
     save: 'Add recipe',
     empty: 'No recipes in this meal.',
     remove: (title) => `Remove ${title} from this meal`,
+    removeConfirmation: (title, day, meal) => `Remove “${title}” from ${day} — ${meal}?`,
+    removeConfirm: 'Remove',
+    removeCancel: 'Cancel',
     confirmation: (day, meal) => `Saved for ${day} — ${meal}. Recipes in this meal:`,
     duplicate: 'This recipe is already in this meal.',
     missingMenu: 'This menu is no longer available. Select another menu.',
@@ -57,6 +63,9 @@ export const planningMessages: Record<Language, PlanningMessages> = {
     save: 'Añadir receta',
     empty: 'No hay recetas en esta comida.',
     remove: (title) => `Quitar ${title} de esta comida`,
+    removeConfirmation: (title, day, meal) => `¿Quitar «${title}» de ${day} — ${meal}?`,
+    removeConfirm: 'Quitar',
+    removeCancel: 'Cancelar',
     confirmation: (day, meal) => `Guardado para ${day} — ${meal}. Recetas de esta comida:`,
     duplicate: 'Esta receta ya está en esta comida.',
     missingMenu: 'Este menú ya no está disponible. Selecciona otro.',
@@ -78,6 +87,9 @@ export const planningMessages: Record<Language, PlanningMessages> = {
     save: 'Afegeix la recepta',
     empty: 'No hi ha receptes en aquest àpat.',
     remove: (title) => `Treu ${title} d'aquest àpat`,
+    removeConfirmation: (title, day, meal) => `Vols treure «${title}» de ${day} — ${meal}?`,
+    removeConfirm: 'Treu',
+    removeCancel: 'Cancel·la',
     confirmation: (day, meal) => `Desat per a ${day} — ${meal}. Receptes d'aquest àpat:`,
     duplicate: 'Aquesta recepta ja és en aquest àpat.',
     missingMenu: 'Aquest menú ja no està disponible. Selecciona un altre menú.',

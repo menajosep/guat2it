@@ -60,6 +60,29 @@ test('plans a meal, prevents duplicates and deletion, and removes the persisted 
     page.getByRole('button', { name: 'Remove Lentil soup from this meal' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Remove Lentil soup from this meal' }).click();
+  const cancelDialog = page.getByRole('alertdialog');
+  await expect(cancelDialog).toContainText('Lentil soup');
+  await expect(cancelDialog).toContainText('Dinner');
+  await cancelDialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Remove Lentil soup from this meal' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Lentil soup from this meal' }).click();
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await navigate(page, 'Weekly menus');
+  await expect(
+    page.getByRole('button', { name: 'Remove Lentil soup from this meal' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Lentil soup from this meal' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click();
+  await expect(page.getByRole('button', { name: 'Remove Lentil soup from this meal' })).toHaveCount(
+    0,
+  );
+  await page.reload();
+  await navigate(page, 'Weekly menus');
+  await menuList.getByRole('button', { name: 'Select menu' }).click();
   await expect(page.getByRole('button', { name: 'Remove Lentil soup from this meal' })).toHaveCount(
     0,
   );
