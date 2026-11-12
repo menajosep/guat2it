@@ -117,6 +117,7 @@ export const en: ShoppingListMessages = {
     'remove-recipe': 'Could not remove the recipe because local storage failed.',
     'load-weekly-menus': 'Could not load weekly menus because local storage failed.',
     'save-weekly-menu': 'Could not save the weekly menu because local storage failed.',
+    'remove-weekly-menu': 'Could not delete the weekly menu because local storage failed.',
   },
   fallbackError: 'Something went wrong. Please try again.',
   dismissMessage: 'Dismiss message',

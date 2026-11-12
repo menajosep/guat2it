@@ -13,7 +13,8 @@ export type PersistenceAction =
   | 'update-recipe'
   | 'remove-recipe'
   | 'load-weekly-menus'
-  | 'save-weekly-menu';
+  | 'save-weekly-menu'
+  | 'remove-weekly-menu';
 
 /** Failure of the storage layer (unavailable, quota exceeded, blocked, ...). */
 export class PersistenceError extends Error {

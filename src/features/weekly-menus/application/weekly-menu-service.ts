@@ -1,4 +1,4 @@
-import type { Result } from '../../../shared/types/result';
+import { fail, ok, type Result } from '../../../shared/types/result';
 import {
   createWeeklyMenu,
   type WeeklyMenu,
@@ -17,6 +17,10 @@ export class WeeklyMenuService {
 
   list(): Promise<WeeklyMenu[]> {
     return this.store.list();
+  }
+
+  async remove(id: string): Promise<Result<void, 'not-found'>> {
+    return (await this.store.remove(id)) ? ok(undefined) : fail('not-found');
   }
 
   async create(draft: WeeklyMenuDraft): Promise<Result<WeeklyMenu, WeeklyMenuErrors>> {
