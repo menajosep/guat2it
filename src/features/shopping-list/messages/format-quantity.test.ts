@@ -28,4 +28,14 @@ describe('formatQuantity', () => {
     expect(formatQuantity({ amount: 1, unit: 'tablespoon' }, ca)).toBe('1 cullerada');
     expect(formatQuantity({ unit: 'to-taste' }, es)).toBe('al gusto');
   });
+
+  it.each([
+    [en, '1 unit', '2 units', '2 whole'],
+    [es, '1 unidad', '2 unidades', '2 enteros'],
+    [ca, '1 unitat', '2 unitats', '2 sencers'],
+  ])('formats countable units and preserves whole units', (labels, singular, plural, whole) => {
+    expect(formatQuantity({ amount: 1, unit: 'unit' }, labels)).toBe(singular);
+    expect(formatQuantity({ amount: 2, unit: 'unit' }, labels)).toBe(plural);
+    expect(formatQuantity({ amount: 2, unit: 'whole' }, labels)).toBe(whole);
+  });
 });

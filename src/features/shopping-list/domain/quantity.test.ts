@@ -38,6 +38,27 @@ describe('parseQuantity', () => {
     expect(parseQuantity(draft('', 'cup'))).toEqual({ ok: false, error: 'amount-required' });
   });
 
+  it('validates the new countable unit like other amount-bearing units', () => {
+    expect(parseQuantity(draft('2', 'unit'))).toEqual({
+      ok: true,
+      value: { amount: 2, unit: 'unit' },
+    });
+    expect(parseQuantity(draft('0.5', 'unit'))).toEqual({
+      ok: true,
+      value: { amount: 0.5, unit: 'unit' },
+    });
+    expect(parseQuantity(draft('', 'unit'))).toEqual({ ok: false, error: 'amount-required' });
+    expect(parseQuantity(draft('0', 'unit'))).toEqual({ ok: false, error: 'invalid-amount' });
+    expect(parseQuantity(draft('10000', 'unit'))).toEqual({
+      ok: false,
+      error: 'amount-too-large',
+    });
+    expect(parseQuantity(draft('2', 'whole'))).toEqual({
+      ok: true,
+      value: { amount: 2, unit: 'whole' },
+    });
+  });
+
   it('accepts units without an amount and rejects an amount for them', () => {
     expect(parseQuantity(draft('', 'to-taste'))).toEqual({ ok: true, value: { unit: 'to-taste' } });
     expect(parseQuantity(draft('', 'a-bit'))).toEqual({ ok: true, value: { unit: 'a-bit' } });

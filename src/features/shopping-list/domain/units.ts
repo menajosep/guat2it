@@ -50,6 +50,7 @@ export const UNITS = {
   cup: counted,
   shaving: counted,
   glass: counted,
+  unit: counted,
 } as const satisfies Record<string, UnitDefinition>;
 
 export type UnitId = keyof typeof UNITS;

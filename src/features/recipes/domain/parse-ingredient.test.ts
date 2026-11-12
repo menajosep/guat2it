@@ -11,6 +11,9 @@ describe('parseIngredient', () => {
     ['1 count Huevos', 'Huevos', '1', 'whole'],
     ['Pan de molde 2count', 'Pan de molde', '2', 'whole'],
     ['Pan de molde 2 count', 'Pan de molde', '2', 'whole'],
+    ['1 unidad de huevo', 'huevo', '1', 'whole'],
+    ['2 unidades de huevo', 'huevo', '2', 'whole'],
+    ['huevo 2 unidades', 'huevo', '2', 'whole'],
   ])('recognizes %s', (source, name, amount, unit) => {
     expect(parseIngredient(source)).toMatchObject({
       source,

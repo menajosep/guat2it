@@ -810,6 +810,38 @@ describe('shopping list', () => {
   });
 
   describe('amount and unit', () => {
+    it('validates, saves, edits and reloads countable units without changing whole units', async () => {
+      const user = userEvent.setup();
+      const database = uniqueDatabase('countable-unit');
+      const { service } = await renderApp(database);
+
+      await addWithQuantity(user, 'Eggs', '', 'unit');
+      await expectAlert('Enter an amount for this unit.');
+      expect(await service.list()).toEqual([]);
+      await user.type(await amountInput(), '1');
+      await user.click(screen.getByText('Add item'));
+      expect(await screen.findByText('1 unit')).toBeInTheDocument();
+
+      await addWithQuantity(user, 'Bread', '2', 'whole');
+      expect(await screen.findByText('2 whole')).toBeInTheDocument();
+
+      await startEdit(user, 'Eggs');
+      const form = await editForm();
+      expect(unitSelect(form)).toHaveValue('unit');
+      await user.clear(await amountInput(form));
+      await user.type(await amountInput(form), '2');
+      await user.click(screen.getByText('Save'));
+      expect(await screen.findByText('2 units')).toBeInTheDocument();
+
+      cleanup();
+      await renderApp(database);
+      expect(await screen.findByText('2 units')).toBeInTheDocument();
+      expect(screen.getByText('2 whole')).toBeInTheDocument();
+      await startEdit(user, 'Eggs');
+      expect(unitSelect(await editForm())).toHaveValue('unit');
+      expect((await amountInput(await editForm())).value).toBe('2');
+    });
+
     it('adds an item with amount and unit and clears the fields', async () => {
       const user = userEvent.setup();
       await renderApp(uniqueDatabase('quantity-add'));

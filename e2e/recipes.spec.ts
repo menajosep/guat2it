@@ -36,6 +36,7 @@ test('imports, reviews and persists a recipe from pasted page source', async ({ 
   await expect(
     secondCountIngredient.getByRole('checkbox', { name: 'I have reviewed this ingredient' }),
   ).toBeChecked();
+  await firstIngredient.getByLabel('Unit for 1').selectOption({ label: 'unit' });
   await page.getByRole('button', { name: 'Save recipe' }).click();
   await expect(page.getByText('Review and confirm this ingredient.')).toBeVisible();
   const fourthIngredient = page.getByRole('group', { name: 'Ingredients 4' });
@@ -48,7 +49,7 @@ test('imports, reviews and persists a recipe from pasted page source', async ({ 
   await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
   await page.getByRole('button', { name: 'Lentil soup' }).click();
   await expect(page.getByRole('heading', { name: 'Lentil soup' })).toBeVisible();
-  await expect(page.getByText('Pan de molde — 2 whole')).toBeVisible();
+  await expect(page.getByText('Pan de molde — 2 units')).toBeVisible();
   await expect(page.getByText('Huevos — 1 whole')).toBeVisible();
   await expect(page.getByText('lentils — 200 grams')).toBeVisible();
   await expect(page.getByText('salt', { exact: true })).toBeVisible();

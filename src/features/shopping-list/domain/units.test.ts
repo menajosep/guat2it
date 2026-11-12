@@ -7,7 +7,7 @@ describe('UNITS', () => {
   });
 
   it('keeps the stored ids stable', () => {
-    expect(UNIT_IDS).toHaveLength(39);
+    expect(UNIT_IDS).toHaveLength(40);
     expect(UNIT_IDS.slice(0, 3)).toEqual(['to-taste', 'a-bit', 'stick']);
     expect(UNIT_IDS).toContain('small-glass');
   });
@@ -16,6 +16,7 @@ describe('UNITS', () => {
 describe('isUnitId', () => {
   it('accepts known ids only', () => {
     expect(isUnitId('gram')).toBe(true);
+    expect(isUnitId('unit')).toBe(true);
     expect(isUnitId('')).toBe(false);
     expect(isUnitId('toString')).toBe(false);
   });
