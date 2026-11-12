@@ -36,9 +36,11 @@ tables; recipe deletion checks the assignment table before removing a recipe.
 3. On successful deletion, update the list from the confirmed result and
    conditionally clear the active menu only if its ID still matches the deleted
    ID. This avoids overwriting a different selection made while the operation
-   was pending. Invalidate older in-flight list loads so they cannot restore a
-   deleted row; do not make reporting a successful write depend on a later
-   read. Failed or missing deletions retain the selection and report an error.
+   was pending. Retain the deletion outcome and deleted IDs in app-session
+   state so they survive page navigation; filter older in-flight list loads
+   against those IDs so they cannot restore a deleted row. Do not make
+   reporting a successful write depend on a later read. Failed or missing
+   deletions retain the selection and report an error.
 4. Provide localized controls, confirmation and error/status messages through
    the existing language catalogs. The existing schema and assignment/recipe
    delete rules remain unchanged.

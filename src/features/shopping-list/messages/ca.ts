@@ -122,6 +122,8 @@ export const ca: ShoppingListMessages = {
       "No s'han pogut carregar els menús setmanals perquè ha fallat l'emmagatzematge local.",
     'save-weekly-menu':
       "No s'ha pogut desar el menú setmanal perquè ha fallat l'emmagatzematge local.",
+    'remove-weekly-menu':
+      "No s'ha pogut suprimir el menú setmanal perquè ha fallat l'emmagatzematge local.",
   },
   fallbackError: 'Alguna cosa ha anat malament. Torna-ho a provar.',
   dismissMessage: 'Descarta el missatge',

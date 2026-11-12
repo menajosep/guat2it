@@ -1,4 +1,11 @@
-import { IonContent, IonPage, IonSpinner, useIonViewWillEnter } from '@ionic/react';
+import {
+  IonAlert,
+  IonContent,
+  IonPage,
+  IonSpinner,
+  useIonViewWillEnter,
+  useIonViewWillLeave,
+} from '@ionic/react';
 import { useCallback, useRef, useState } from 'react';
 import { PersistenceError } from '../../../shared/errors/persistence-error';
 import { LanguageNotice } from '../../language/components/LanguageNotice';
@@ -17,7 +24,14 @@ export function WeeklyMenusPage() {
   const { language } = useLanguage();
   const messages = weeklyMenuMessages[language];
   const planning = planningMessages[language];
-  const { menu: activeMenu, selectMenu } = useActiveMenu();
+  const {
+    menu: activeMenu,
+    selectMenu,
+    deletedMenuIds,
+    deletion,
+    deleteMenu,
+    clearDeletionFeedback,
+  } = useActiveMenu();
   const shoppingMessages = useShoppingListMessages();
   const [draft, setDraft] = useState(() => {
     const startDate = localCalendarDate(new Date());
@@ -30,8 +44,12 @@ export function WeeklyMenusPage() {
   const [errors, setErrors] = useState<WeeklyMenuErrors>({});
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<WeeklyMenu | null>(null);
   const savingRef = useRef(false);
+  const pendingDeleteRef = useRef<WeeklyMenu | null>(null);
   const loadVersion = useRef(0);
+  const visibleMenus = menus.filter((menu) => !deletedMenuIds.has(menu.id));
+  const deleting = deletion === 'pending';
 
   const load = useCallback(async () => {
     const version = ++loadVersion.current;
@@ -52,6 +70,10 @@ export function WeeklyMenusPage() {
   useIonViewWillEnter(() => {
     void load();
   }, [load]);
+  useIonViewWillLeave(() => {
+    pendingDeleteRef.current = null;
+    setPendingDelete(null);
+  }, []);
 
   const save = async () => {
     if (savingRef.current) return;
@@ -89,6 +111,16 @@ export function WeeklyMenusPage() {
       <IonContent className="ion-padding">
         <div className="page-column weekly-menus">
           <LanguageNotice />
+          {deletion === 'deleted' && <p role="status">{messages.deleted}</p>}
+          {(deletion === 'storage' || deletion === 'not-found' || deletion === 'unexpected') && (
+            <p role="alert">
+              {deletion === 'storage'
+                ? shoppingMessages.storageFailures['remove-weekly-menu']
+                : deletion === 'not-found'
+                  ? messages.deleteMissing
+                  : messages.deleteUnexpected}
+            </p>
+          )}
           {status === 'loading' && <IonSpinner aria-label={messages.loading} />}
           {status === 'error' && (
             <>
@@ -160,12 +192,36 @@ export function WeeklyMenusPage() {
                 </p>
               )}
               {created && <p role="status">{messages.created}</p>}
+              <IonAlert
+                isOpen={pendingDelete !== null}
+                header={
+                  pendingDelete
+                    ? messages.deletePrompt(pendingDelete.name, pendingDelete.startDate)
+                    : ''
+                }
+                buttons={[
+                  { text: messages.deleteCancel, role: 'cancel' },
+                  {
+                    text: messages.deleteConfirm,
+                    role: 'destructive',
+                    handler: () => {
+                      const target = pendingDeleteRef.current;
+                      pendingDeleteRef.current = null;
+                      if (target) void deleteMenu(target.id);
+                    },
+                  },
+                ]}
+                onDidDismiss={() => {
+                  pendingDeleteRef.current = null;
+                  setPendingDelete(null);
+                }}
+              />
               <h2>{messages.list}</h2>
-              {menus.length === 0 ? (
+              {visibleMenus.length === 0 ? (
                 <p>{messages.empty}</p>
               ) : (
                 <ul aria-label={messages.list}>
-                  {menus.map((menu) => (
+                  {visibleMenus.map((menu) => (
                     <li key={menu.id}>
                       {menu.name} — <time dateTime={menu.startDate}>{menu.startDate}</time>{' '}
                       <button
@@ -176,6 +232,18 @@ export function WeeklyMenusPage() {
                         }}
                       >
                         {planning.select}
+                      </button>{' '}
+                      <button
+                        type="button"
+                        disabled={deleting || pendingDelete !== null}
+                        onClick={() => {
+                          pendingDeleteRef.current = menu;
+                          setPendingDelete(menu);
+                          clearDeletionFeedback();
+                          setCreated(false);
+                        }}
+                      >
+                        {messages.deleteMenu(menu.name)}
                       </button>
                     </li>
                   ))}

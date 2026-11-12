@@ -118,6 +118,8 @@ export const es: ShoppingListMessages = {
     'load-weekly-menus':
       'No se pudieron cargar los menús semanales porque falló el almacenamiento local.',
     'save-weekly-menu': 'No se pudo guardar el menú semanal porque falló el almacenamiento local.',
+    'remove-weekly-menu':
+      'No se pudo eliminar el menú semanal porque falló el almacenamiento local.',
   },
   fallbackError: 'Algo salió mal. Inténtalo de nuevo.',
   dismissMessage: 'Descartar mensaje',

@@ -14,6 +14,13 @@ interface WeeklyMenuMessages {
   readonly longName: string;
   readonly loadUnexpected: string;
   readonly saveUnexpected: string;
+  readonly deleteMenu: (name: string) => string;
+  readonly deletePrompt: (name: string, date: string) => string;
+  readonly deleteConfirm: string;
+  readonly deleteCancel: string;
+  readonly deleted: string;
+  readonly deleteMissing: string;
+  readonly deleteUnexpected: string;
   readonly defaultName: (date: string) => string;
 }
 
@@ -32,6 +39,14 @@ export const weeklyMenuMessages: Record<Language, WeeklyMenuMessages> = {
     longName: 'Menu names can have at most 100 characters.',
     loadUnexpected: 'Could not load weekly menus. Please try again.',
     saveUnexpected: 'Could not save the weekly menu. Please try again.',
+    deleteMenu: (name) => `Delete menu ${name}`,
+    deletePrompt: (name, date) =>
+      `Delete “${name}” (${date})? Its assignments will be removed, but saved recipes will be kept.`,
+    deleteConfirm: 'Delete',
+    deleteCancel: 'Cancel',
+    deleted: 'Weekly menu deleted.',
+    deleteMissing: 'This weekly menu is no longer available.',
+    deleteUnexpected: 'Could not delete the weekly menu. Please try again.',
     defaultName: (date) => `Weekly menu (${date})`,
   },
   es: {
@@ -48,6 +63,14 @@ export const weeklyMenuMessages: Record<Language, WeeklyMenuMessages> = {
     longName: 'Los nombres de menú pueden tener hasta 100 caracteres.',
     loadUnexpected: 'No se pudieron cargar los menús semanales. Inténtalo de nuevo.',
     saveUnexpected: 'No se pudo guardar el menú semanal. Inténtalo de nuevo.',
+    deleteMenu: (name) => `Eliminar menú ${name}`,
+    deletePrompt: (name, date) =>
+      `¿Eliminar «${name}» (${date})? Se quitarán sus asignaciones, pero se conservarán las recetas guardadas.`,
+    deleteConfirm: 'Eliminar',
+    deleteCancel: 'Cancelar',
+    deleted: 'Menú semanal eliminado.',
+    deleteMissing: 'Este menú semanal ya no está disponible.',
+    deleteUnexpected: 'No se pudo eliminar el menú semanal. Inténtalo de nuevo.',
     defaultName: (date) => `Menú semanal (${date})`,
   },
   ca: {
@@ -64,6 +87,14 @@ export const weeklyMenuMessages: Record<Language, WeeklyMenuMessages> = {
     longName: 'Els noms de menú poden tenir fins a 100 caràcters.',
     loadUnexpected: "No s'han pogut carregar els menús setmanals. Torna-ho a provar.",
     saveUnexpected: "No s'ha pogut desar el menú setmanal. Torna-ho a provar.",
+    deleteMenu: (name) => `Suprimeix el menú ${name}`,
+    deletePrompt: (name, date) =>
+      `Vols suprimir «${name}» (${date})? Se'n trauran les assignacions, però es conservaran les receptes desades.`,
+    deleteConfirm: 'Suprimeix',
+    deleteCancel: 'Cancel·la',
+    deleted: 'Menú setmanal suprimit.',
+    deleteMissing: 'Aquest menú setmanal ja no està disponible.',
+    deleteUnexpected: "No s'ha pogut suprimir el menú setmanal. Torna-ho a provar.",
     defaultName: (date) => `Menú setmanal (${date})`,
   },
 };
