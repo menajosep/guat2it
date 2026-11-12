@@ -6,6 +6,7 @@ import {
   createLanguageService,
   createRecipeService,
   createShoppingListService,
+  createWeeklyMenuService,
 } from '../app/create-services';
 import { PersistenceError } from '../shared/errors/persistence-error';
 import type { ShoppingListService } from '../features/shopping-list/application/shopping-list-service';
@@ -27,6 +28,7 @@ function renderApp(
       shoppingListService={service}
       languageService={createLanguageService(options.storage)}
       recipeService={createRecipeService(uniqueDatabase())}
+      weeklyMenuService={createWeeklyMenuService(uniqueDatabase())}
     />,
   );
   return { service, ...view };
@@ -95,7 +97,7 @@ describe('interface language', () => {
     expect(
       await screen.findByText('Llista de la compra', { selector: 'ion-title' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Afegeix un article')).toBeInTheDocument();
+    expect(await screen.findByText('Afegeix un article')).toBeInTheDocument();
     expect(screen.getByText(/La teva llista de la compra és buida/)).toBeInTheDocument();
     expect(screen.queryByText('Shopping list', { selector: 'ion-title' })).not.toBeInTheDocument();
     expect(await languageSelect('Idioma')).toHaveValue('ca');
@@ -236,7 +238,7 @@ describe('interface language', () => {
     renderApp();
     await user.type(await nameInput(), 'Milk');
     await user.click(await screen.findByText('Add item'));
-    expect(await screen.findByRole('status')).toHaveTextContent('Added Milk');
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Added Milk'));
 
     await choose(user, 'Language', 'Català');
     await waitFor(() => {

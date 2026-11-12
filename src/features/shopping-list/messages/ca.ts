@@ -15,6 +15,7 @@ export const ca: ShoppingListMessages = {
     closeMenu: 'Tanca el menú',
     shoppingList: 'Llista de la compra',
     recipes: 'Receptes',
+    weeklyMenus: 'Menús setmanals',
     admin: 'Administració',
   },
   loadingList: 'Carregant la llista de la compra',
@@ -117,6 +118,10 @@ export const ca: ShoppingListMessages = {
     'update-recipe':
       "No s'ha pogut actualitzar la recepta perquè ha fallat l'emmagatzematge local.",
     'remove-recipe': "No s'ha pogut eliminar la recepta perquè ha fallat l'emmagatzematge local.",
+    'load-weekly-menus':
+      "No s'han pogut carregar els menús setmanals perquè ha fallat l'emmagatzematge local.",
+    'save-weekly-menu':
+      "No s'ha pogut desar el menú setmanal perquè ha fallat l'emmagatzematge local.",
   },
   fallbackError: 'Alguna cosa ha anat malament. Torna-ho a provar.',
   dismissMessage: 'Descarta el missatge',

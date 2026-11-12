@@ -10,29 +10,41 @@ import { AdminPage } from '../features/shopping-list/pages/AdminPage';
 import type { RecipeService } from '../features/recipes/application/recipe-service';
 import { RecipeServiceProvider } from '../features/recipes/hooks/recipe-service-context';
 import { RecipesPage } from '../features/recipes/pages/RecipesPage';
+import type { WeeklyMenuService } from '../features/weekly-menus/application/weekly-menu-service';
+import { WeeklyMenuServiceProvider } from '../features/weekly-menus/hooks/weekly-menu-service-context';
+import { WeeklyMenusPage } from '../features/weekly-menus/pages/WeeklyMenusPage';
 import { AppMenu } from './AppMenu';
 
 interface AppProps {
   shoppingListService: ShoppingListService;
   languageService: LanguageService;
   recipeService: RecipeService;
+  weeklyMenuService: WeeklyMenuService;
 }
 
-export function App({ shoppingListService, languageService, recipeService }: AppProps) {
+export function App({
+  shoppingListService,
+  languageService,
+  recipeService,
+  weeklyMenuService,
+}: AppProps) {
   return (
     <IonApp>
       <LanguageProvider service={languageService}>
         <ShoppingListServiceProvider value={shoppingListService}>
           <RecipeServiceProvider value={recipeService}>
-            <IonReactRouter>
-              <AppMenu />
-              <IonRouterOutlet id="main-content">
-                <Route path="/shopping-list" element={<ShoppingListPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/recipes" element={<RecipesPage />} />
-                <Route path="*" element={<Navigate to="/shopping-list" replace />} />
-              </IonRouterOutlet>
-            </IonReactRouter>
+            <WeeklyMenuServiceProvider value={weeklyMenuService}>
+              <IonReactRouter>
+                <AppMenu />
+                <IonRouterOutlet id="main-content">
+                  <Route path="/shopping-list" element={<ShoppingListPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/recipes" element={<RecipesPage />} />
+                  <Route path="/weekly-menus" element={<WeeklyMenusPage />} />
+                  <Route path="*" element={<Navigate to="/shopping-list" replace />} />
+                </IonRouterOutlet>
+              </IonReactRouter>
+            </WeeklyMenuServiceProvider>
           </RecipeServiceProvider>
         </ShoppingListServiceProvider>
       </LanguageProvider>

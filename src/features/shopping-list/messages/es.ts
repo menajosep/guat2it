@@ -15,6 +15,7 @@ export const es: ShoppingListMessages = {
     closeMenu: 'Cerrar menú',
     shoppingList: 'Lista de la compra',
     recipes: 'Recetas',
+    weeklyMenus: 'Menús semanales',
     admin: 'Administración',
   },
   loadingList: 'Cargando la lista de la compra',
@@ -114,6 +115,9 @@ export const es: ShoppingListMessages = {
     'save-recipe': 'No se pudo guardar la receta porque falló el almacenamiento local.',
     'update-recipe': 'No se pudo actualizar la receta porque falló el almacenamiento local.',
     'remove-recipe': 'No se pudo eliminar la receta porque falló el almacenamiento local.',
+    'load-weekly-menus':
+      'No se pudieron cargar los menús semanales porque falló el almacenamiento local.',
+    'save-weekly-menu': 'No se pudo guardar el menú semanal porque falló el almacenamiento local.',
   },
   fallbackError: 'Algo salió mal. Inténtalo de nuevo.',
   dismissMessage: 'Descartar mensaje',
