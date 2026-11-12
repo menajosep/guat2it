@@ -8,11 +8,16 @@ import { useShoppingListMessages } from '../../shopping-list/hooks/use-shopping-
 import { localCalendarDate, type WeeklyMenu, type WeeklyMenuErrors } from '../domain/weekly-menu';
 import { useWeeklyMenuService } from '../hooks/weekly-menu-service-context';
 import { weeklyMenuMessages } from '../messages/weekly-menu-messages';
+import { planningMessages } from '../messages/planning-messages';
+import { useActiveMenu } from '../hooks/active-menu-context';
+import { MenuSlots } from '../components/MenuSlots';
 
 export function WeeklyMenusPage() {
   const service = useWeeklyMenuService();
   const { language } = useLanguage();
   const messages = weeklyMenuMessages[language];
+  const planning = planningMessages[language];
+  const { menu: activeMenu, selectMenu } = useActiveMenu();
   const shoppingMessages = useShoppingListMessages();
   const [draft, setDraft] = useState(() => {
     const startDate = localCalendarDate(new Date());
@@ -162,11 +167,21 @@ export function WeeklyMenusPage() {
                 <ul aria-label={messages.list}>
                   {menus.map((menu) => (
                     <li key={menu.id}>
-                      {menu.name} — <time dateTime={menu.startDate}>{menu.startDate}</time>
+                      {menu.name} — <time dateTime={menu.startDate}>{menu.startDate}</time>{' '}
+                      <button
+                        type="button"
+                        aria-pressed={activeMenu?.id === menu.id}
+                        onClick={() => {
+                          selectMenu(menu);
+                        }}
+                      >
+                        {planning.select}
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
+              {activeMenu && <MenuSlots key={activeMenu.id} menu={activeMenu} />}
             </>
           )}
         </div>

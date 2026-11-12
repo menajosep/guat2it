@@ -22,6 +22,7 @@ export interface RecipeMessages {
   readonly deleteConfirm: string;
   readonly deleteFailed: string;
   readonly deleteUnexpected: string;
+  readonly deleteInUse: string;
   readonly title: string;
   readonly yield: string;
   readonly ingredients: string;
@@ -80,6 +81,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteConfirm: 'Delete',
     deleteFailed: 'Could not delete the recipe because local storage failed.',
     deleteUnexpected: 'Could not delete the recipe. Please try again.',
+    deleteInUse: 'Remove this recipe from all weekly menus before deleting it.',
     title: 'Title',
     yield: 'Yield',
     ingredients: 'Ingredients',
@@ -137,6 +139,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteConfirm: 'Eliminar',
     deleteFailed: 'No se pudo eliminar la receta porque falló el almacenamiento local.',
     deleteUnexpected: 'No se pudo eliminar la receta. Inténtalo de nuevo.',
+    deleteInUse: 'Quita esta receta de todos los menús semanales antes de eliminarla.',
     title: 'Título',
     yield: 'Raciones',
     ingredients: 'Ingredientes',
@@ -195,6 +198,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteConfirm: 'Suprimeix',
     deleteFailed: "No s'ha pogut suprimir la recepta perquè ha fallat l'emmagatzematge local.",
     deleteUnexpected: "No s'ha pogut suprimir la recepta. Torna-ho a provar.",
+    deleteInUse: 'Treu aquesta recepta de tots els menús setmanals abans de suprimir-la.',
     title: 'Títol',
     yield: 'Racions',
     ingredients: 'Ingredients',

@@ -12,12 +12,15 @@ import { RecipeReview } from '../components/RecipeReview';
 import { recipeToDraft, type Recipe, type RecipeDraft, type RecipeErrors } from '../domain/recipe';
 import { useRecipeService } from '../hooks/recipe-service-context';
 import { recipeMessages } from '../messages/recipe-messages';
+import { AssignRecipe } from '../../weekly-menus/components/AssignRecipe';
+import { useActiveMenu } from '../../weekly-menus/hooks/active-menu-context';
 
 type View = 'list' | 'import' | 'review' | 'edit' | 'detail';
 type Status = 'loading' | 'ready' | 'error';
 
 export function RecipesPage() {
   const service = useRecipeService();
+  const { menu: activeMenu } = useActiveMenu();
   const { language } = useLanguage();
   const messages = recipeMessages[language];
   const shoppingMessages = useShoppingListMessages();
@@ -32,9 +35,9 @@ export function RecipesPage() {
   const [errors, setErrors] = useState<RecipeErrors | null>(null);
   const [loadError, setLoadError] = useState<'storage' | 'unexpected'>('storage');
   const [saveError, setSaveError] = useState<'storage' | 'unexpected' | null>(null);
-  const [deleteError, setDeleteError] = useState<'storage' | 'unexpected' | 'not-found' | null>(
-    null,
-  );
+  const [deleteError, setDeleteError] = useState<
+    'storage' | 'unexpected' | 'not-found' | 'in-use' | null
+  >(null);
   const [updateError, setUpdateError] = useState<'storage' | 'unexpected' | 'not-found' | null>(
     null,
   );
@@ -169,7 +172,9 @@ export function RecipesPage() {
       ? messages.deleteFailed
       : deleteError === 'not-found'
         ? messages.missingRecipe
-        : messages.deleteUnexpected;
+        : deleteError === 'in-use'
+          ? messages.deleteInUse
+          : messages.deleteUnexpected;
 
   const importErrorMessages: Record<ImportError | 'unexpected', string> = {
     'invalid-url': messages.invalidUrl,
@@ -288,6 +293,7 @@ export function RecipesPage() {
                 }}
               />
               <h1>{selected.title}</h1>
+              <AssignRecipe key={`${selected.id}-${activeMenu?.id ?? ''}`} recipeId={selected.id} />
               <RecipeImage
                 key={selected.imageUrl}
                 url={selected.imageUrl}

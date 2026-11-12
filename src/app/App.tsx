@@ -13,6 +13,7 @@ import { RecipesPage } from '../features/recipes/pages/RecipesPage';
 import type { WeeklyMenuService } from '../features/weekly-menus/application/weekly-menu-service';
 import { WeeklyMenuServiceProvider } from '../features/weekly-menus/hooks/weekly-menu-service-context';
 import { WeeklyMenusPage } from '../features/weekly-menus/pages/WeeklyMenusPage';
+import { ActiveMenuProvider } from '../features/weekly-menus/hooks/active-menu-context';
 import { AppMenu } from './AppMenu';
 
 interface AppProps {
@@ -34,16 +35,18 @@ export function App({
         <ShoppingListServiceProvider value={shoppingListService}>
           <RecipeServiceProvider value={recipeService}>
             <WeeklyMenuServiceProvider value={weeklyMenuService}>
-              <IonReactRouter>
-                <AppMenu />
-                <IonRouterOutlet id="main-content">
-                  <Route path="/shopping-list" element={<ShoppingListPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/recipes" element={<RecipesPage />} />
-                  <Route path="/weekly-menus" element={<WeeklyMenusPage />} />
-                  <Route path="*" element={<Navigate to="/shopping-list" replace />} />
-                </IonRouterOutlet>
-              </IonReactRouter>
+              <ActiveMenuProvider>
+                <IonReactRouter>
+                  <AppMenu />
+                  <IonRouterOutlet id="main-content">
+                    <Route path="/shopping-list" element={<ShoppingListPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/recipes" element={<RecipesPage />} />
+                    <Route path="/weekly-menus" element={<WeeklyMenusPage />} />
+                    <Route path="*" element={<Navigate to="/shopping-list" replace />} />
+                  </IonRouterOutlet>
+                </IonReactRouter>
+              </ActiveMenuProvider>
             </WeeklyMenuServiceProvider>
           </RecipeServiceProvider>
         </ShoppingListServiceProvider>

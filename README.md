@@ -8,9 +8,9 @@ Implemented: a **local shopping list** — add items with an optional amount, un
 
 The interface uses an icon-inspired green theme and automatically follows the device's light or dark appearance.
 
-Use **Weekly menus** in the toolbar menu to create a named local menu with a chosen start date. The date starts at today; changing it resets the name to the suggested name. Multiple menus can share a start date. Saved menus remain on the device; assigning meals or recipes to them is not yet available.
+Use **Weekly menus** in the toolbar menu to create a named local menu with a chosen start date. The date starts at today; changing it resets the name to the suggested name. Multiple menus can share a start date. Select a saved menu, then open a saved recipe under **Recipes** and add it to a day and lunch or dinner. A meal can contain multiple recipes, but not the same recipe twice. Remove assignments from the selected weekly menu. A recipe cannot be deleted until all its assignments are removed. Assignments remain on the device, while the selected menu is cleared on reload or restart.
 
-Not implemented (yet): assigning meals to menus, shopping lists generated from recipes, sync, accounts.
+Not implemented (yet): shopping lists generated from recipes, sync, accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
 

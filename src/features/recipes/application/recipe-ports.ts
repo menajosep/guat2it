@@ -23,5 +23,5 @@ export interface RecipeStore {
   get(id: string): Promise<Recipe | undefined>;
   save(recipe: Recipe): Promise<void>;
   update(recipe: Recipe): Promise<boolean>;
-  remove(id: string): Promise<boolean>;
+  remove(id: string): Promise<boolean | 'in-use'>;
 }

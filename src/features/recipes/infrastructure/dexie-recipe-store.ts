@@ -42,11 +42,12 @@ export class DexieRecipeStore implements RecipeStore {
     );
   }
 
-  remove(id: string): Promise<boolean> {
+  remove(id: string): Promise<boolean | 'in-use'> {
     return guard('remove-recipe', () =>
-      this.db.transaction('rw', this.db.recipes, async () => {
+      this.db.transaction('rw', this.db.recipes, this.db.menuAssignments, async () => {
         const recipe = await this.db.recipes.get(id);
         if (!recipe) return false;
+        if (await this.db.menuAssignments.where('recipeId').equals(id).count()) return 'in-use';
         await this.db.recipes.delete(id);
         return true;
       }),

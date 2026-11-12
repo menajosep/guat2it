@@ -6,11 +6,13 @@ import {
   type WeeklyMenuErrors,
 } from '../domain/weekly-menu';
 import type { WeeklyMenuStore } from './weekly-menu-store';
+import type { MenuAssignmentService } from './menu-assignment-service';
 
 export class WeeklyMenuService {
   constructor(
     private readonly store: WeeklyMenuStore,
     private readonly generateId: () => string,
+    readonly assignments: MenuAssignmentService,
   ) {}
 
   list(): Promise<WeeklyMenu[]> {

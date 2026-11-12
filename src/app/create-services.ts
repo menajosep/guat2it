@@ -8,6 +8,8 @@ import { extractRecipe } from '../features/recipes/infrastructure/extract-recipe
 import { NativeRecipeSourceReader } from '../features/recipes/infrastructure/native-recipe-source-reader';
 import { WeeklyMenuService } from '../features/weekly-menus/application/weekly-menu-service';
 import { DexieWeeklyMenuStore } from '../features/weekly-menus/infrastructure/dexie-weekly-menu-store';
+import { MenuAssignmentService } from '../features/weekly-menus/application/menu-assignment-service';
+import { DexieMenuAssignmentStore } from '../features/weekly-menus/infrastructure/dexie-menu-assignment-store';
 import { AppDatabase, DATABASE_NAME } from '../infrastructure/persistence/app-database';
 import { generateId } from '../shared/utils/generate-id';
 
@@ -27,7 +29,12 @@ export function createLanguageService(storage: Storage = localStorage): Language
 }
 
 export function createWeeklyMenuService(databaseName: string = DATABASE_NAME): WeeklyMenuService {
-  return new WeeklyMenuService(new DexieWeeklyMenuStore(new AppDatabase(databaseName)), generateId);
+  const database = new AppDatabase(databaseName);
+  return new WeeklyMenuService(
+    new DexieWeeklyMenuStore(database),
+    generateId,
+    new MenuAssignmentService(new DexieMenuAssignmentStore(database)),
+  );
 }
 
 export function createRecipeService(databaseName: string = DATABASE_NAME): RecipeService {
