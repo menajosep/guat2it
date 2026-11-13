@@ -28,7 +28,7 @@ For individual items, select the countable unit ("unit", "unidad" or "unitat") a
 
 Unit choices are listed alphabetically in the selected language, after the option to leave the unit empty.
 
-Recipes are stored locally, but pictures are referenced by their HTTPS URLs rather than saved offline. Displaying a picture contacts its host and needs network access; if it is unavailable the other recipe details remain accessible. Native downloads accept up to 5 MiB and restrict requests and redirects to the supported Directo al Paladar hosts.
+Recipes are stored locally and shown two per row as picture thumbnails with their titles. Select a thumbnail or title to open its details. Pictures are referenced by their HTTPS URLs rather than saved offline: displaying them contacts their hosts and needs network access. If a picture is unavailable, its recipe remains accessible. Native downloads accept up to 5 MiB and restrict requests and redirects to the supported Directo al Paladar hosts.
 
 To edit a saved recipe, open it from the recipe list and select **Edit recipe**. Changes are validated before saving; canceling leaves the saved recipe unchanged.
 

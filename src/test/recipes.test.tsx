@@ -8,6 +8,7 @@ import {
   createShoppingListService,
   createWeeklyMenuService,
 } from '../app/create-services';
+import type { Recipe } from '../features/recipes/domain/recipe';
 import { PersistenceError } from '../shared/errors/persistence-error';
 
 setupIonicReact();
@@ -26,6 +27,27 @@ const recipeSource = `<script type="application/ld+json">${JSON.stringify({
     },
   ],
 })}</script>`;
+
+const savedRecipes: [Recipe, Recipe] = [
+  {
+    id: 'soup',
+    sourceUrl: 'https://www.directoalpaladar.com/soup',
+    title: 'Lentil soup',
+    yield: 4,
+    ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }],
+    instructions: 'Cook gently.',
+    imageUrl: 'https://images.example.com/soup.jpg',
+  },
+  {
+    id: 'salad',
+    sourceUrl: 'https://www.directoalpaladar.com/salad',
+    title: 'Green salad',
+    yield: 2,
+    ingredients: [{ name: 'lettuce', amount: 1, unit: 'whole' }],
+    instructions: 'Mix.',
+    imageUrl: 'https://images.example.com/salad.jpg',
+  },
+];
 
 function renderApp() {
   const database = `recipe-ui-${String(++counter)}`;
@@ -82,6 +104,92 @@ afterEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
   window.history.replaceState({}, '', '/');
+});
+
+it('shows recipe thumbnails and opens the corresponding details by image or keyboard', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  vi.spyOn(recipes, 'list').mockResolvedValue(savedRecipes);
+  await openRecipes(user);
+
+  const soup = await screen.findByRole('button', { name: 'Lentil soup' });
+  const salad = screen.getByRole('button', { name: 'Green salad' });
+  const soupImage = soup.querySelector('img');
+  const saladImage = salad.querySelector('img');
+  expect(soupImage).toHaveAttribute('src', 'https://images.example.com/soup.jpg');
+  expect(soupImage).toHaveAttribute('loading', 'lazy');
+  expect(saladImage).toHaveAttribute('src', 'https://images.example.com/salad.jpg');
+  if (!saladImage) throw new Error('Salad thumbnail not found');
+  await user.click(saladImage);
+  expect(await screen.findByRole('heading', { name: 'Green salad' })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+  const soupEntry = screen.getByRole('button', { name: 'Lentil soup' });
+  soupEntry.focus();
+  await user.keyboard('{Enter}');
+  expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
+});
+
+it('keeps failed and invalid thumbnails accessible and independent when language changes', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  vi.spyOn(recipes, 'list').mockResolvedValue([
+    ...savedRecipes,
+    { ...savedRecipes[0], id: 'invalid', title: 'Invalid picture', imageUrl: 'http://example.com' },
+  ]);
+  await openRecipes(user);
+  const soup = await screen.findByRole('button', { name: 'Lentil soup' });
+  const soupImage = soup.querySelector('img');
+  if (!soupImage) throw new Error('Soup thumbnail not found');
+  fireEvent.error(soupImage);
+  expect(soup).toHaveAccessibleDescription('Picture unavailable');
+  expect(screen.getByRole('button', { name: 'Invalid picture' })).toHaveAccessibleDescription(
+    'Picture unavailable',
+  );
+  expect(screen.getByRole('button', { name: 'Green salad' }).querySelector('img')).toHaveAttribute(
+    'src',
+    'https://images.example.com/salad.jpg',
+  );
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(soup).toHaveAccessibleDescription('Imagen no disponible');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'ca');
+  expect(soup).toHaveAccessibleDescription('Imatge no disponible');
+  await user.click(soup);
+  expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
+});
+
+it('restores a thumbnail after editing its failed picture and preserves detail fallbacks', async () => {
+  const user = userEvent.setup();
+  await createSavedRecipe(user);
+  const entry = screen.getByRole('button', { name: 'Lentil soup' });
+  const image = entry.querySelector('img');
+  if (!image) throw new Error('Recipe thumbnail not found');
+  fireEvent.error(image);
+  expect(entry).toHaveAccessibleDescription('Picture unavailable');
+  await user.click(entry);
+
+  const detailImage = screen.getByRole('img', { name: 'Lentil soup' });
+  fireEvent.error(detailImage);
+  expect(screen.getByRole('img', { name: 'Picture unavailable' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  const reviewImage = screen.getByRole('img', { name: 'Lentil soup' });
+  fireEvent.error(reviewImage);
+  expect(screen.getByRole('img', { name: 'Picture unavailable' })).toBeInTheDocument();
+  await user.clear(screen.getByLabelText('Picture URL'));
+  await user.type(screen.getByLabelText('Picture URL'), 'https://images.example.com/updated.jpg');
+  expect(screen.getByRole('img', { name: 'Lentil soup' })).toHaveAttribute(
+    'src',
+    'https://images.example.com/updated.jpg',
+  );
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+  await screen.findByRole('heading', { name: 'Lentil soup' });
+  await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+  const updated = screen.getByRole('button', { name: 'Lentil soup' });
+  expect(updated.querySelector('img')).toHaveAttribute(
+    'src',
+    'https://images.example.com/updated.jpg',
+  );
+  expect(updated).not.toHaveAccessibleDescription('Picture unavailable');
 });
 
 it('retains unresolved ingredients, requires confirmation, and saves the corrected recipe', async () => {

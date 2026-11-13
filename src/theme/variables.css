@@ -52,6 +52,47 @@
   height: auto;
 }
 
+.recipes .recipe-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.recipes .recipe-list__entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.recipes .recipe-list__entry > span:first-child {
+  display: block;
+  width: 100%;
+}
+
+.recipes .recipe-list__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.recipes .recipe-list__fallback {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  text-align: center;
+  background: var(--ion-color-medium);
+}
+
 .recipes [role='alert'],
 .weekly-menus [role='alert'] {
   color: var(--ion-color-danger);
