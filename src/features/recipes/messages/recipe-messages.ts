@@ -1,5 +1,6 @@
 import type { Language } from '../../language/domain/language';
 import type { RecipeCategory } from '../domain/recipe';
+import type { RecipeLabel, RecipeLabelFacet } from '../domain/recipe-labels';
 
 export interface RecipeMessages {
   readonly empty: string;
@@ -26,12 +27,23 @@ export interface RecipeMessages {
   readonly deleteInUse: string;
   readonly title: string;
   readonly category: string;
+  readonly recipeFilters: string;
+  readonly activeFilterCount: (count: number) => string;
   readonly categoryFilter: string;
   readonly allRecipes: string;
   readonly uncategorized: string;
   readonly noMatches: string;
   readonly invalidCategory: string;
   readonly categories: Record<RecipeCategory, string>;
+  readonly recipeLabels: string;
+  readonly labelFilters: string;
+  readonly clearLabelFilters: string;
+  readonly unlabeled: string;
+  readonly invalidLabels: string;
+  readonly labelSafetyNote: string;
+  readonly selectedLabelCount: (count: number) => string;
+  readonly labelFacets: Record<RecipeLabelFacet, string>;
+  readonly labels: Record<RecipeLabel, string>;
   readonly yield: string;
   readonly ingredients: string;
   readonly addIngredient: string;
@@ -92,10 +104,13 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteInUse: 'Remove this recipe from all weekly menus before deleting it.',
     title: 'Title',
     category: 'Category',
+    recipeFilters: 'Recipe filters',
+    activeFilterCount: (count) =>
+      count === 1 ? '1 active filter' : `${String(count)} active filters`,
     categoryFilter: 'Filter recipes by category',
     allRecipes: 'All recipes',
     uncategorized: 'Uncategorized',
-    noMatches: 'No recipes match this category.',
+    noMatches: 'No recipes match the selected filters.',
     invalidCategory: 'Choose a supported recipe category.',
     categories: {
       'breakfast-brunch': 'Breakfast & Brunch',
@@ -108,6 +123,64 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
       desserts: 'Desserts',
       'sauces-condiments': 'Sauces & Condiments',
       beverages: 'Beverages',
+    },
+    recipeLabels: 'Recipe labels',
+    labelFilters: 'Filter by recipe labels',
+    clearLabelFilters: 'Clear label filters',
+    unlabeled: 'No labels',
+    invalidLabels: 'Choose only supported, distinct recipe labels.',
+    labelSafetyNote:
+      'Dietary and allergen labels are user-assigned and are not verified safety claims.',
+    selectedLabelCount: (count) => (count === 1 ? '1 selected' : `${String(count)} selected`),
+    labelFacets: {
+      mainIngredient: 'Main Ingredient',
+      cookingMethod: 'Cooking Method',
+      dietaryAllergens: 'Dietary & Allergens',
+      cuisineRegion: 'Cuisine / Region',
+      mealOccasionEffort: 'Meal Occasion / Effort',
+    },
+    labels: {
+      'main-beef': 'Beef',
+      'main-pork': 'Pork',
+      'main-poultry': 'Poultry',
+      'main-fish': 'Fish',
+      'main-seafood': 'Seafood',
+      'main-eggs': 'Eggs',
+      'main-tofu-tempeh': 'Tofu/Tempeh',
+      'main-legumes': 'Legumes',
+      'main-pasta-noodles': 'Pasta/Noodles',
+      'main-rice-grains': 'Rice/Grains',
+      'main-vegetables': 'Vegetables',
+      'method-stovetop': 'Stovetop',
+      'method-oven-roast': 'Oven/Roast',
+      'method-grill-bbq': 'Grill/BBQ',
+      'method-slow-cooker': 'Slow Cooker',
+      'method-pressure-cooker': 'Pressure Cooker / Instant Pot',
+      'method-air-fryer': 'Air Fryer',
+      'method-no-cook': 'No-Cook',
+      'method-sous-vide': 'Sous Vide',
+      'diet-vegetarian': 'Vegetarian',
+      'diet-vegan': 'Vegan',
+      'diet-gluten-free': 'Gluten-Free',
+      'diet-dairy-free': 'Dairy-Free',
+      'diet-nut-free': 'Nut-Free',
+      'diet-low-carb-keto': 'Low-Carb/Keto',
+      'diet-high-protein': 'High-Protein',
+      'cuisine-mediterranean': 'Mediterranean',
+      'cuisine-italian': 'Italian',
+      'cuisine-mexican': 'Mexican',
+      'cuisine-japanese': 'Japanese',
+      'cuisine-chinese': 'Chinese',
+      'cuisine-indian': 'Indian',
+      'cuisine-thai': 'Thai',
+      'cuisine-french': 'French',
+      'cuisine-middle-eastern': 'Middle Eastern',
+      'cuisine-american': 'American',
+      'occasion-weeknight-quick': 'Weeknight / Quick (less than 30 min)',
+      'occasion-meal-prep-freezable': 'Meal Prep / Freezable',
+      'occasion-one-pot': 'One-Pot',
+      'occasion-entertaining-holiday': 'Entertaining / Holiday',
+      'occasion-kid-friendly': 'Kid-Friendly',
     },
     yield: 'Yield',
     ingredients: 'Ingredients',
@@ -168,10 +241,13 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteInUse: 'Quita esta receta de todos los menús semanales antes de eliminarla.',
     title: 'Título',
     category: 'Categoría',
+    recipeFilters: 'Filtros de recetas',
+    activeFilterCount: (count) =>
+      count === 1 ? '1 filtro activo' : `${String(count)} filtros activos`,
     categoryFilter: 'Filtrar recetas por categoría',
     allRecipes: 'Todas las recetas',
     uncategorized: 'Sin categoría',
-    noMatches: 'No hay recetas en esta categoría.',
+    noMatches: 'No hay recetas que coincidan con los filtros seleccionados.',
     invalidCategory: 'Elige una categoría de receta válida.',
     categories: {
       'breakfast-brunch': 'Desayunos y brunch',
@@ -184,6 +260,65 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
       desserts: 'Postres',
       'sauces-condiments': 'Salsas y condimentos',
       beverages: 'Bebidas',
+    },
+    recipeLabels: 'Etiquetas de la receta',
+    labelFilters: 'Filtrar por etiquetas de receta',
+    clearLabelFilters: 'Quitar filtros de etiquetas',
+    unlabeled: 'Sin etiquetas',
+    invalidLabels: 'Elige solo etiquetas de receta válidas y distintas.',
+    labelSafetyNote:
+      'Las etiquetas dietéticas y de alérgenos las asigna el usuario y no son garantías de seguridad verificadas.',
+    selectedLabelCount: (count) =>
+      count === 1 ? '1 seleccionada' : `${String(count)} seleccionadas`,
+    labelFacets: {
+      mainIngredient: 'Ingrediente principal',
+      cookingMethod: 'Método de cocción',
+      dietaryAllergens: 'Dietas y alérgenos',
+      cuisineRegion: 'Cocina / Región',
+      mealOccasionEffort: 'Ocasión / Esfuerzo',
+    },
+    labels: {
+      'main-beef': 'Ternera',
+      'main-pork': 'Cerdo',
+      'main-poultry': 'Aves',
+      'main-fish': 'Pescado',
+      'main-seafood': 'Marisco',
+      'main-eggs': 'Huevos',
+      'main-tofu-tempeh': 'Tofu/Tempeh',
+      'main-legumes': 'Legumbres',
+      'main-pasta-noodles': 'Pasta/Fideos',
+      'main-rice-grains': 'Arroz/Cereales',
+      'main-vegetables': 'Verduras',
+      'method-stovetop': 'Fogones',
+      'method-oven-roast': 'Horno/Asado',
+      'method-grill-bbq': 'Parrilla/Barbacoa',
+      'method-slow-cooker': 'Olla de cocción lenta',
+      'method-pressure-cooker': 'Olla a presión / Instant Pot',
+      'method-air-fryer': 'Freidora de aire',
+      'method-no-cook': 'Sin cocinar',
+      'method-sous-vide': 'Cocción al vacío',
+      'diet-vegetarian': 'Vegetariano',
+      'diet-vegan': 'Vegano',
+      'diet-gluten-free': 'Sin gluten',
+      'diet-dairy-free': 'Sin lácteos',
+      'diet-nut-free': 'Sin frutos secos',
+      'diet-low-carb-keto': 'Bajo en carbohidratos/Keto',
+      'diet-high-protein': 'Alto en proteínas',
+      'cuisine-mediterranean': 'Mediterránea',
+      'cuisine-italian': 'Italiana',
+      'cuisine-mexican': 'Mexicana',
+      'cuisine-japanese': 'Japonesa',
+      'cuisine-chinese': 'China',
+      'cuisine-indian': 'India',
+      'cuisine-thai': 'Tailandesa',
+      'cuisine-french': 'Francesa',
+      'cuisine-middle-eastern': 'De Oriente Medio',
+      'cuisine-american': 'Estadounidense',
+      'occasion-weeknight-quick': 'Entre semana / Rápida (menos de 30 min)',
+      'occasion-meal-prep-freezable': 'Preparación anticipada / Congelable',
+      'occasion-one-pot': 'En una olla',
+      'occasion-entertaining-holiday': 'Celebraciones / Festividades',
+      'occasion-kid-friendly': 'Apta para niños',
     },
     yield: 'Raciones',
     ingredients: 'Ingredientes',
@@ -245,10 +380,13 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteInUse: 'Treu aquesta recepta de tots els menús setmanals abans de suprimir-la.',
     title: 'Títol',
     category: 'Categoria',
+    recipeFilters: 'Filtres de receptes',
+    activeFilterCount: (count) =>
+      count === 1 ? '1 filtre actiu' : `${String(count)} filtres actius`,
     categoryFilter: 'Filtra les receptes per categoria',
     allRecipes: 'Totes les receptes',
     uncategorized: 'Sense categoria',
-    noMatches: 'No hi ha receptes en aquesta categoria.',
+    noMatches: 'No hi ha receptes que coincideixin amb els filtres seleccionats.',
     invalidCategory: 'Tria una categoria de recepta vàlida.',
     categories: {
       'breakfast-brunch': 'Esmorzars i brunch',
@@ -261,6 +399,65 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
       desserts: 'Postres',
       'sauces-condiments': 'Salses i condiments',
       beverages: 'Begudes',
+    },
+    recipeLabels: 'Etiquetes de la recepta',
+    labelFilters: 'Filtra per etiquetes de recepta',
+    clearLabelFilters: 'Esborra els filtres d’etiquetes',
+    unlabeled: 'Sense etiquetes',
+    invalidLabels: 'Tria només etiquetes de recepta vàlides i diferents.',
+    labelSafetyNote:
+      'Les etiquetes dietètiques i d’al·lèrgens les assigna l’usuari i no són garanties de seguretat verificades.',
+    selectedLabelCount: (count) =>
+      count === 1 ? '1 seleccionada' : `${String(count)} seleccionades`,
+    labelFacets: {
+      mainIngredient: 'Ingredient principal',
+      cookingMethod: 'Mètode de cocció',
+      dietaryAllergens: 'Dietes i al·lèrgens',
+      cuisineRegion: 'Cuina / Regió',
+      mealOccasionEffort: 'Ocasió / Esforç',
+    },
+    labels: {
+      'main-beef': 'Vedella',
+      'main-pork': 'Porc',
+      'main-poultry': 'Aus',
+      'main-fish': 'Peix',
+      'main-seafood': 'Marisc',
+      'main-eggs': 'Ous',
+      'main-tofu-tempeh': 'Tofu/Tempeh',
+      'main-legumes': 'Llegums',
+      'main-pasta-noodles': 'Pasta/Fideus',
+      'main-rice-grains': 'Arròs/Cereals',
+      'main-vegetables': 'Verdures',
+      'method-stovetop': 'Fogons',
+      'method-oven-roast': 'Forn/Rostit',
+      'method-grill-bbq': 'Graella/Barbacoa',
+      'method-slow-cooker': 'Olla de cocció lenta',
+      'method-pressure-cooker': 'Olla de pressió / Instant Pot',
+      'method-air-fryer': 'Fregidora d’aire',
+      'method-no-cook': 'Sense cocció',
+      'method-sous-vide': 'Cocció al buit',
+      'diet-vegetarian': 'Vegetarià',
+      'diet-vegan': 'Vegà',
+      'diet-gluten-free': 'Sense gluten',
+      'diet-dairy-free': 'Sense lactis',
+      'diet-nut-free': 'Sense fruita seca',
+      'diet-low-carb-keto': 'Baix en carbohidrats/Keto',
+      'diet-high-protein': 'Alt en proteïnes',
+      'cuisine-mediterranean': 'Mediterrània',
+      'cuisine-italian': 'Italiana',
+      'cuisine-mexican': 'Mexicana',
+      'cuisine-japanese': 'Japonesa',
+      'cuisine-chinese': 'Xinesa',
+      'cuisine-indian': 'Índia',
+      'cuisine-thai': 'Tailandesa',
+      'cuisine-french': 'Francesa',
+      'cuisine-middle-eastern': 'De l’Orient Mitjà',
+      'cuisine-american': 'Estatunidenca',
+      'occasion-weeknight-quick': 'Entre setmana / Ràpida (menys de 30 min)',
+      'occasion-meal-prep-freezable': 'Preparació anticipada / Congelable',
+      'occasion-one-pot': 'En una olla',
+      'occasion-entertaining-holiday': 'Celebracions / Festivitats',
+      'occasion-kid-friendly': 'Apta per a infants',
     },
     yield: 'Racions',
     ingredients: 'Ingredients',

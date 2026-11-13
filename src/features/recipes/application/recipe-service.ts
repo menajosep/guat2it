@@ -60,6 +60,7 @@ export class RecipeService {
     return ok({
       sourceUrl: url,
       ...extracted.value,
+      labels: [],
       ingredients: extracted.value.ingredients.map(parseIngredient),
     });
   }

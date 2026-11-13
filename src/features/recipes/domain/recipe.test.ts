@@ -1,6 +1,7 @@
 import {
   recipeToDraft,
   isRecipeCategory,
+  ALL_RECIPE_LABELS,
   RECIPE_CATEGORIES,
   validateIngredient,
   validateRecipe,
@@ -56,6 +57,7 @@ describe('recipe validation', () => {
       ],
       instructions: 'Cook.',
       imageUrl: draft.imageUrl,
+      labels: [],
     });
   });
 
@@ -96,6 +98,42 @@ describe('recipe validation', () => {
     expect(validateRecipe(invalidDraft, 'recipe-1')).toMatchObject({
       ok: false,
       error: { category: 'invalid' },
+    });
+  });
+
+  it('accepts all supported labels and carries multiple selections through drafts', () => {
+    expect(ALL_RECIPE_LABELS).toHaveLength(41);
+    for (const label of ALL_RECIPE_LABELS) {
+      expect(validateRecipe({ ...draft, labels: [label] }, 'recipe-1')).toMatchObject({
+        ok: true,
+        value: { labels: [label] },
+      });
+    }
+
+    const labels = ['main-poultry', 'main-vegetables', 'method-oven-roast'] as const;
+    const validated = validateRecipe({ ...draft, labels }, 'recipe-1');
+    expect(validated).toMatchObject({ ok: true, value: { labels } });
+    if (validated.ok) expect(recipeToDraft(validated.value).labels).toEqual(labels);
+  });
+
+  it('treats omitted, empty, and legacy labels as unlabeled', () => {
+    expect(validateRecipe(draft, 'recipe-1')).toMatchObject({ ok: true });
+    const empty = validateRecipe({ ...draft, labels: [] }, 'recipe-1');
+    expect(empty.ok && empty.value.labels).toBeUndefined();
+    const legacy = validateRecipe(draft, 'recipe-1');
+    if (!legacy.ok) throw new Error('Expected legacy recipe draft to be valid');
+    expect(recipeToDraft(legacy.value).labels).toEqual([]);
+  });
+
+  it.each([
+    ['unsupported', ['custom-label']],
+    ['duplicate', ['main-beef', 'main-beef']],
+  ])('rejects %s label identifiers', (_kind, labels) => {
+    const invalidDraft = { ...draft };
+    Object.defineProperty(invalidDraft, 'labels', { value: labels });
+    expect(validateRecipe(invalidDraft, 'recipe-1')).toMatchObject({
+      ok: false,
+      error: { labels: 'invalid' },
     });
   });
 

@@ -101,7 +101,7 @@ The system SHALL persist selected labels locally using language-independent iden
 
 ### Requirement: Localized accessible label controls
 
-All label facet names, values, controls, safety guidance, validation messages, and empty states SHALL be available in English, Spanish, and Catalan. Changing the interface language MUST change their displayed language without changing stored labels, unsaved selections, or active filters. Label controls MUST have accessible names, support keyboard and touch interaction, and remain usable without horizontal scrolling on narrow screens.
+All label facet names, values, controls, safety guidance, validation messages, and empty states SHALL be available in English, Spanish, and Catalan. Changing the interface language MUST change their displayed language without changing stored labels, unsaved selections, or active filters. Label controls MUST have accessible names, support keyboard and touch interaction, and remain usable without horizontal scrolling on narrow screens. Each facet's label controls in recipe forms and browsing filters SHALL be individually collapsible using an accessible disclosure control. Facets SHALL start collapsed, and a collapsed facet MUST indicate how many of its labels are selected. The recipes page SHALL provide an accessible disclosure for the entire filter section, including the course-category and label filters. The complete filter section SHALL start collapsed and its summary MUST indicate the number of active filters. Collapsing and expanding this section MUST preserve all filter selections.
 
 #### Scenario: Change language with selections
 
@@ -112,6 +112,26 @@ All label facet names, values, controls, safety guidance, validation messages, a
 
 - **WHEN** a user selects labels or filters using keyboard or touch on a narrow screen
 - **THEN** every facet and option is accessible and usable without horizontal scrolling
+
+#### Scenario: Expand and collapse a label facet
+
+- **WHEN** a user opens a recipe form or the label filters
+- **THEN** each facet is initially collapsed and its summary shows its localized name and selected-label count
+
+#### Scenario: Change a collapsed facet selection
+
+- **WHEN** a user expands a facet, changes one or more labels, and collapses it
+- **THEN** the selections remain unchanged and the collapsed summary displays the updated count
+
+#### Scenario: Collapse the complete filter section
+
+- **WHEN** a user opens the recipes page
+- **THEN** the complete filter section is collapsed and its summary shows that no filters are active
+
+#### Scenario: Reopen active filters
+
+- **WHEN** a user selects a course category and recipe labels, collapses the filter section, and opens it again
+- **THEN** all selections remain active and the collapsed summary shows the active-filter count
 
 #### Scenario: Complete translation coverage
 

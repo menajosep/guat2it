@@ -47,6 +47,7 @@ describe('RecipeService', () => {
       value: {
         sourceUrl,
         title: 'Soup',
+        labels: [],
         ingredients: [{ source: '200 g lentils', confirmed: true }],
       },
     });
@@ -136,6 +137,33 @@ describe('RecipeService', () => {
     expect(save).not.toHaveBeenCalled();
     expect(await instance.save(draft.value)).toMatchObject({ ok: true, value: { id: 'id' } });
     expect(save).toHaveBeenCalledOnce();
+  });
+
+  it('saves and updates selected labels without changing the source URL', async () => {
+    const { service: instance, store } = service();
+    const imported = instance.import(sourceUrl, 'source');
+    if (!imported.ok) throw new Error('Expected an imported draft');
+    const labels = ['main-poultry', 'method-oven-roast'] as const;
+    const update = vi.spyOn(store, 'update');
+    const saved = await instance.save({ ...imported.value, labels });
+    expect(saved).toMatchObject({
+      ok: true,
+      value: { sourceUrl, labels },
+    });
+
+    const get = vi.spyOn(store, 'get').mockResolvedValue({
+      id: 'id',
+      sourceUrl,
+      title: 'Soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }],
+      instructions: 'Cook',
+      imageUrl: 'https://example.com/image.jpg',
+    });
+    const updated = await instance.update('id', { ...imported.value, labels });
+    expect(updated).toMatchObject({ ok: true, value: { sourceUrl, labels } });
+    expect(get).toHaveBeenCalledOnce();
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ sourceUrl, labels }));
   });
 
   it('saves and updates the optional recipe category', async () => {
