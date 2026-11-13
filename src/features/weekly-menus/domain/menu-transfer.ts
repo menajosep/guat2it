@@ -22,14 +22,26 @@ export interface TransferSnapshot {
 
 export interface TransferContribution {
   readonly quantity: Quantity;
+  readonly scaledAmount?: ExactAmount;
   readonly source:
-    | { readonly kind: 'recipe'; readonly title: string; readonly assignment: MenuAssignment }
+    | {
+        readonly kind: 'recipe';
+        readonly title: string;
+        readonly yield: number;
+        readonly assignment: MenuAssignment;
+      }
     | { readonly kind: 'shopping'; readonly itemId: string };
+}
+
+export interface ExactAmount {
+  readonly numerator: bigint;
+  readonly denominator: bigint;
 }
 
 export interface TransferGroup {
   readonly key: string;
   readonly name: string;
+  readonly servings: number | null;
   readonly contributions: readonly TransferContribution[];
   readonly items: readonly ShoppingItem[];
 }
@@ -40,7 +52,12 @@ export interface TransferChoice {
 }
 
 export type TransferQuantityError =
-  'choose-unit' | 'manual-required' | 'unit-mismatch' | QuantityError;
+  | 'choose-unit'
+  | 'manual-required'
+  | 'unit-mismatch'
+  | 'servings-required'
+  | 'invalid-yield'
+  | QuantityError;
 
 const nameKey = (name: string) => name.trim().toLowerCase();
 const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
@@ -53,6 +70,55 @@ function compareItems(a: ShoppingItem, b: ShoppingItem): number {
   return a.createdAt.getTime() - b.createdAt.getTime() || compareText(a.id, b.id);
 }
 
+function gcd(a: bigint, b: bigint): bigint {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b !== 0n) {
+    [a, b] = [b, a % b];
+  }
+  return a;
+}
+
+function rational(numerator: bigint, denominator: bigint): ExactAmount {
+  if (denominator < 0n) {
+    numerator = -numerator;
+    denominator = -denominator;
+  }
+  const divisor = gcd(numerator, denominator);
+  return { numerator: numerator / divisor, denominator: denominator / divisor };
+}
+
+function multiply(a: ExactAmount, b: ExactAmount): ExactAmount {
+  return rational(a.numerator * b.numerator, a.denominator * b.denominator);
+}
+
+function add(a: ExactAmount, b: ExactAmount): ExactAmount {
+  return rational(
+    a.numerator * b.denominator + b.numerator * a.denominator,
+    a.denominator * b.denominator,
+  );
+}
+
+function decimalRational(value: number): ExactAmount | undefined {
+  if (!Number.isFinite(value)) return undefined;
+  const text = value.toString().toLowerCase();
+  const [coefficient = '', exponentText] = text.split('e');
+  const exponent = exponentText === undefined ? 0 : Number(exponentText);
+  const decimalIndex = coefficient.indexOf('.');
+  const places = (decimalIndex < 0 ? 0 : coefficient.length - decimalIndex - 1) - exponent;
+  const digits = coefficient.replace('.', '');
+  if (!/^-?\d+$/.test(digits) || !Number.isInteger(places)) return undefined;
+  const numerator = BigInt(digits);
+  if (places <= 0) return rational(numerator * 10n ** BigInt(-places), 1n);
+  return rational(numerator, 10n ** BigInt(places));
+}
+
+function servingsFactor(servings: number, yieldValue: number): ExactAmount | undefined {
+  const recipeYield = decimalRational(yieldValue);
+  if (!recipeYield || recipeYield.numerator <= 0n) return undefined;
+  return rational(BigInt(servings) * recipeYield.denominator, recipeYield.numerator);
+}
+
 export function groupTransfer(snapshot: TransferSnapshot): TransferGroup[] {
   const groups = new Map<string, { name: string; contributions: TransferContribution[] }>();
   const assignments = [...snapshot.assignments].sort(
@@ -62,7 +128,13 @@ export function groupTransfer(snapshot: TransferSnapshot): TransferGroup[] {
       compareText(a.assignment.recipeId, b.assignment.recipeId),
   );
   for (const { assignment, recipe } of assignments) {
+    const scale =
+      snapshot.menu.servings === null
+        ? undefined
+        : servingsFactor(snapshot.menu.servings, recipe.yield);
     for (const ingredient of recipe.ingredients) {
+      const amount =
+        ingredient.amount === undefined ? undefined : decimalRational(ingredient.amount);
       const key = nameKey(ingredient.name);
       let group = groups.get(key);
       if (!group) {
@@ -71,7 +143,8 @@ export function groupTransfer(snapshot: TransferSnapshot): TransferGroup[] {
       }
       group.contributions.push({
         quantity: quantityOf(ingredient),
-        source: { kind: 'recipe', title: recipe.title, assignment },
+        ...(amount && scale ? { scaledAmount: multiply(amount, scale) } : {}),
+        source: { kind: 'recipe', title: recipe.title, yield: recipe.yield, assignment },
       });
     }
   }
@@ -82,13 +155,18 @@ export function groupTransfer(snapshot: TransferSnapshot): TransferGroup[] {
     return {
       key,
       name: items[0]?.name ?? group.name,
+      servings: snapshot.menu.servings,
       items,
       contributions: [
         ...group.contributions,
-        ...items.map((item): TransferContribution => ({
-          quantity: quantityOf(item),
-          source: { kind: 'shopping', itemId: item.id },
-        })),
+        ...items.map((item): TransferContribution => {
+          const amount = item.amount === undefined ? undefined : decimalRational(item.amount);
+          return {
+            quantity: quantityOf(item),
+            ...(amount ? { scaledAmount: amount } : {}),
+            source: { kind: 'shopping', itemId: item.id },
+          };
+        }),
       ],
     };
   });
@@ -101,22 +179,16 @@ const mass: Partial<Record<UnitId, bigint>> = {
 };
 const volume: Partial<Record<UnitId, bigint>> = { milliliter: 1n, liter: 1000n };
 
-function factor(unit: UnitId, target: UnitId): [bigint, bigint] | undefined {
-  if (unit === target) return [1n, 1n];
+function factor(unit: UnitId, target: UnitId): ExactAmount | undefined {
+  if (unit === target) return rational(1n, 1n);
   const massSource = mass[unit];
   const massTarget = mass[target];
-  if (massSource !== undefined && massTarget !== undefined) return [massSource, massTarget];
+  if (massSource !== undefined && massTarget !== undefined) return rational(massSource, massTarget);
   const volumeSource = volume[unit];
   const volumeTarget = volume[target];
-  if (volumeSource !== undefined && volumeTarget !== undefined) return [volumeSource, volumeTarget];
+  if (volumeSource !== undefined && volumeTarget !== undefined)
+    return rational(volumeSource, volumeTarget);
   return undefined;
-}
-
-function gcd(a: bigint, b: bigint): bigint {
-  while (b !== 0n) {
-    [a, b] = [b, a % b];
-  }
-  return a;
 }
 
 export function transferUnits(group: TransferGroup): UnitId[] {
@@ -127,10 +199,42 @@ export function transferUnits(group: TransferGroup): UnitId[] {
   ];
 }
 
+export function formatExactAmount(amount: ExactAmount): string {
+  let denominator = amount.denominator;
+  let twos = 0;
+  let fives = 0;
+  while (denominator % 2n === 0n) {
+    denominator /= 2n;
+    twos += 1;
+  }
+  while (denominator % 5n === 0n) {
+    denominator /= 5n;
+    fives += 1;
+  }
+  if (denominator !== 1n) return `${String(amount.numerator)}/${String(amount.denominator)}`;
+
+  const places = Math.max(twos, fives);
+  const scaled = amount.numerator * 2n ** BigInt(places - twos) * 5n ** BigInt(places - fives);
+  const negative = scaled < 0n;
+  const digits = String(negative ? -scaled : scaled).padStart(places + 1, '0');
+  if (places === 0) return `${negative ? '-' : ''}${digits}`;
+  const whole = digits.slice(0, -places);
+  const fractional = digits.slice(-places).replace(/0+$/, '');
+  return `${negative ? '-' : ''}${whole}${fractional ? `.${fractional}` : ''}`;
+}
+
 export function resolveTransferQuantity(
   group: TransferGroup,
   choice: TransferChoice,
 ): Result<Quantity, TransferQuantityError> {
+  if (
+    group.contributions.some(
+      ({ source }) =>
+        source.kind === 'recipe' && (!Number.isFinite(source.yield) || source.yield <= 0),
+    )
+  )
+    return fail('invalid-yield');
+  if (group.servings === null) return fail('servings-required');
   const units = transferUnits(group);
   const target =
     choice.target === null
@@ -144,22 +248,22 @@ export function resolveTransferQuantity(
   if (target === undefined) return fail('manual-required');
   let numerator = 0n;
   let denominator = 1n;
-  for (const { quantity } of group.contributions) {
-    if (quantity.amount === undefined || quantity.unit === undefined)
-      return fail('manual-required');
+  for (const contribution of group.contributions) {
+    const { quantity, scaledAmount } = contribution;
+    if (scaledAmount === undefined || quantity.unit === undefined) return fail('manual-required');
     const ratio = factor(quantity.unit, target);
     if (!ratio) return fail('manual-required');
-    const cents = BigInt(Math.round(quantity.amount * 100));
-    numerator = numerator * ratio[1] + cents * ratio[0] * denominator;
-    denominator *= ratio[1];
-    const divisor = gcd(numerator, denominator);
-    numerator /= divisor;
-    denominator /= divisor;
+    const converted = multiply(scaledAmount, ratio);
+    const total = add({ numerator, denominator }, converted);
+    numerator = total.numerator;
+    denominator = total.denominator;
   }
-  if (numerator % denominator !== 0n) return fail('manual-required');
-  const total = numerator / denominator;
-  if (total <= 0n || total > BigInt(Math.round(MAX_AMOUNT * 100))) return fail('manual-required');
-  return ok({ amount: Number(total) / 100, unit: target });
+  const cents = numerator * 100n;
+  if (cents % denominator !== 0n) return fail('manual-required');
+  const totalCents = cents / denominator;
+  if (totalCents <= 0n || totalCents > BigInt(Math.round(MAX_AMOUNT * 100)))
+    return fail('manual-required');
+  return ok({ amount: Number(totalCents) / 100, unit: target });
 }
 
 export function transferItem(

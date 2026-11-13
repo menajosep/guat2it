@@ -1,4 +1,4 @@
-import { createWeeklyMenu, isCalendarDate, localCalendarDate } from './weekly-menu';
+import { createWeeklyMenu, isCalendarDate, localCalendarDate, parseServings } from './weekly-menu';
 
 describe('weekly menu validation', () => {
   it('uses the local calendar fields rather than UTC', () => {
@@ -20,19 +20,39 @@ describe('weekly menu validation', () => {
     },
   );
 
-  it('validates both fields and trims the saved name', () => {
-    expect(createWeeklyMenu({ name: '  Menu  ', startDate: '2026-11-16' }, 'a')).toEqual({
+  it('validates fields and trims the saved name', () => {
+    expect(
+      createWeeklyMenu({ name: '  Menu  ', startDate: '2026-11-16', servings: '2' }, 'a'),
+    ).toEqual({
       ok: true,
-      value: { id: 'a', name: 'Menu', startDate: '2026-11-16' },
+      value: { id: 'a', name: 'Menu', startDate: '2026-11-16', servings: 2 },
     });
-    expect(createWeeklyMenu({ name: ' ', startDate: '' }, 'a')).toEqual({
+    expect(createWeeklyMenu({ name: ' ', startDate: '', servings: '' }, 'a')).toEqual({
       ok: false,
-      error: { name: 'empty', startDate: 'invalid' },
+      error: { name: 'empty', startDate: 'invalid', servings: 'invalid' },
     });
-    expect(createWeeklyMenu({ name: 'x'.repeat(101), startDate: '2026-11-16' }, 'a')).toEqual({
+    expect(
+      createWeeklyMenu({ name: 'x'.repeat(101), startDate: '2026-11-16', servings: '2' }, 'a'),
+    ).toEqual({
       ok: false,
       error: { name: 'too-long' },
     });
-    expect(createWeeklyMenu({ name: 'x'.repeat(100), startDate: '2026-11-16' }, 'a').ok).toBe(true);
+    expect(
+      createWeeklyMenu({ name: 'x'.repeat(100), startDate: '2026-11-16', servings: '2' }, 'a').ok,
+    ).toBe(true);
   });
+
+  it.each([
+    ['1', 1],
+    [String(Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER],
+  ])('accepts safe positive whole-number servings %s', (value, servings) => {
+    expect(parseServings(value)).toEqual({ ok: true, value: servings });
+  });
+
+  it.each(['', '0', '-1', '1.5', '1e3', String(Number.MAX_SAFE_INTEGER + 1), 'NaN'])(
+    'rejects invalid servings %s',
+    (value) => {
+      expect(parseServings(value)).toEqual({ ok: false, error: 'invalid' });
+    },
+  );
 });

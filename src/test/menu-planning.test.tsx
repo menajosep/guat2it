@@ -15,7 +15,7 @@ import { WeeklyMenuServiceProvider } from '../features/weekly-menus/hooks/weekly
 import { AppDatabase } from '../infrastructure/persistence/app-database';
 
 let counter = 0;
-const menu = { id: 'menu', name: 'Family meals', startDate: '2026-11-18' };
+const menu = { id: 'menu', name: 'Family meals', startDate: '2026-11-18', servings: 4 };
 
 function Controls() {
   const [language, setLanguage] = useState<Language>('en');

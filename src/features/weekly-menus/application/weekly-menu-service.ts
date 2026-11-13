@@ -1,6 +1,7 @@
 import { fail, ok, type Result } from '../../../shared/types/result';
 import {
   createWeeklyMenu,
+  parseServings,
   type WeeklyMenu,
   type WeeklyMenuDraft,
   type WeeklyMenuErrors,
@@ -30,5 +31,15 @@ export class WeeklyMenuService {
     if (!menu.ok) return menu;
     await this.store.save(menu.value);
     return menu;
+  }
+
+  async updateServings(
+    id: string,
+    draft: string,
+  ): Promise<Result<WeeklyMenu, 'not-found' | 'invalid'>> {
+    const servings = parseServings(draft);
+    if (!servings.ok) return servings;
+    const menu = await this.store.updateServings(id, servings.value);
+    return menu ? ok(menu) : fail('not-found');
   }
 }

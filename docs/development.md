@@ -50,6 +50,10 @@ The CLI is a dev dependency, so use `npx openspec ...` (or the npm scripts). Can
 
 Recipe labels are fixed, language-independent domain identifiers defined by facet. Translation maps cover every identifier in English, Spanish, and Catalan. Keep labels separate from the single course category and from shopping-list categories. List filters match any selected value within a facet and require a match in every selected facet; they compose with the course-category filter. The whole filter section and its individual facet disclosure controls are native and initially collapsed; summaries display localized counts of active filters and selected labels respectively. Treat dietary and allergen labels as user-assigned metadata, never as verified safety claims.
 
+## Menu servings and transfer quantities
+
+Every new weekly menu requires a positive whole-number serving count; saved counts can be edited. Older menus remain available with an unknown count until the user saves one. Menu transfer scales each recipe ingredient amount by menu servings divided by that recipe's yield, without scaling shopping-list items. Keep scaling, unit conversion and summation exact; show the original and scaled contributions, and require explicit resolution when an amount is missing or the final quantity cannot be represented within shopping-list limits. Do not silently round or infer a serving count or yield.
+
 ## Native platforms (Capacitor)
 
 See the README for the commands. The application ID in `capacitor.config.ts` is a placeholder (`com.example.guat2it`); change it before running `npx cap add`. Native projects (`android/`, `ios/`) are generated locally; their build output and signing files are git-ignored.

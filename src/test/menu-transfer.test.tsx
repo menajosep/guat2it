@@ -21,8 +21,8 @@ const date = new Date('2026-01-01T00:00:00Z');
 async function seed(name: string) {
   const db = new AppDatabase(name);
   await db.weeklyMenus.bulkAdd([
-    { id: 'm', name: 'Family', startDate: '2026-11-18' },
-    { id: 'empty', name: 'Empty', startDate: '2026-11-18' },
+    { id: 'm', name: 'Family', startDate: '2026-11-18', servings: 2 },
+    { id: 'empty', name: 'Empty', startDate: '2026-11-18', servings: null },
   ]);
   await db.recipes.add({
     id: 'r',
@@ -93,7 +93,9 @@ it('reviews repeated assignments, converts units, and persists the resulting act
   await openSelectedMenu(user);
   await user.click(screen.getByRole('button', { name: 'Add menu ingredients to shopping list' }));
   const group = await screen.findByRole('group', { name: 'flour' });
-  expect(within(group).getAllByText(/Soup — day/)).toHaveLength(2);
+  expect(within(group).getAllByText(/Soup \(yield: 2\) — day/)).toHaveLength(2);
+  expect(screen.getByText('Scaling for 2 servings.')).toBeInTheDocument();
+  expect(within(group).getAllByText('Scaled contribution: 500 grams')).toHaveLength(2);
   expect(within(group).getByText(/Shopping list: 1 kilogram/)).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Add ingredients' }));
   expect(within(group).getByRole('alert')).toHaveTextContent('Review the quantities');
@@ -118,6 +120,24 @@ it('reviews repeated assignments, converts units, and persists the resulting act
   });
   await navigate(user, 'Shopping list');
   expect(await screen.findByText(/3 kilograms/)).toBeInTheDocument();
+  db.close();
+});
+
+it('reports an invalid saved recipe yield without offering a transfer', async () => {
+  const user = userEvent.setup();
+  const name = uniqueDatabase();
+  const db = await seed(name);
+  await db.recipes.update('r', { yield: Number.NaN });
+  renderApp(name);
+  await openSelectedMenu(user);
+  await user.click(screen.getByRole('button', { name: 'Add menu ingredients to shopping list' }));
+  expect(
+    await screen.findByText(
+      'A recipe has an invalid yield. Correct or remove it before transferring.',
+    ),
+  ).toHaveAttribute('role', 'alert');
+  expect(screen.queryByRole('button', { name: 'Add ingredients' })).not.toBeInTheDocument();
+  expect((await db.shoppingItems.get('a'))?.amount).toBe(1);
   db.close();
 });
 

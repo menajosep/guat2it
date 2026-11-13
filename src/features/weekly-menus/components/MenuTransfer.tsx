@@ -8,6 +8,7 @@ import { useShoppingListMessages } from '../../shopping-list/hooks/use-shopping-
 import { formatQuantity } from '../../shopping-list/messages/format-quantity';
 import {
   groupTransfer,
+  formatExactAmount,
   resolveTransferQuantity,
   transferUnits,
   type TransferChoice,
@@ -19,15 +20,23 @@ import { useActiveMenu } from '../hooks/active-menu-context';
 import { useWeeklyMenuService } from '../hooks/weekly-menu-service-context';
 import { planningMessages } from '../messages/planning-messages';
 import { transferMessages } from '../messages/transfer-messages';
+import { weeklyMenuMessages } from '../messages/weekly-menu-messages';
 
 function isQuantityError(error: TransferQuantityError): error is QuantityError {
-  return error !== 'choose-unit' && error !== 'manual-required' && error !== 'unit-mismatch';
+  return (
+    error !== 'choose-unit' &&
+    error !== 'manual-required' &&
+    error !== 'unit-mismatch' &&
+    error !== 'servings-required' &&
+    error !== 'invalid-yield'
+  );
 }
 
 export function MenuTransfer({ menu }: { menu: WeeklyMenu }) {
   const { language } = useLanguage();
   const messages = transferMessages[language];
   const planning = planningMessages[language];
+  const weekly = weeklyMenuMessages[language];
   const shopping = useShoppingListMessages();
   const service = useWeeklyMenuService();
   const { transfer, transferMenu, clearTransferFeedback } = useActiveMenu();
@@ -36,7 +45,13 @@ export function MenuTransfer({ menu }: { menu: WeeklyMenu }) {
   const [invalid, setInvalid] = useState<ReadonlySet<string>>(() => new Set());
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<
-    'menu-not-found' | 'recipe-not-found' | 'storage' | 'unexpected' | null
+    | 'menu-not-found'
+    | 'recipe-not-found'
+    | 'servings-required'
+    | 'invalid-recipe-yield'
+    | 'storage'
+    | 'unexpected'
+    | null
   >(null);
   const version = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -120,9 +135,13 @@ export function MenuTransfer({ menu }: { menu: WeeklyMenu }) {
             ? messages.menuMissing
             : loadError === 'recipe-not-found'
               ? messages.recipeMissing
-              : loadError === 'storage'
-                ? messages.loadFailed
-                : messages.unexpected}
+              : loadError === 'servings-required'
+                ? weekly.servingsRequired
+                : loadError === 'invalid-recipe-yield'
+                  ? messages.invalidRecipeYield
+                  : loadError === 'storage'
+                    ? messages.loadFailed
+                    : messages.unexpected}
         </p>
       )}
       {snapshot && groups.length === 0 && <p role="status">{messages.empty}</p>}
@@ -140,6 +159,7 @@ export function MenuTransfer({ menu }: { menu: WeeklyMenu }) {
           <h2 ref={heading} tabIndex={-1}>
             {messages.review}: {snapshot.menu.name} — {snapshot.menu.startDate}
           </h2>
+          {snapshot.menu.servings !== null && <p>{messages.scaling(snapshot.menu.servings)}</p>}
           {groups.map((group, index) => {
             const choice = choices.get(group.key) ?? {};
             const units = transferUnits(group);
@@ -159,20 +179,43 @@ export function MenuTransfer({ menu }: { menu: WeeklyMenu }) {
               <fieldset key={group.key} disabled={pending}>
                 <legend>{group.name}</legend>
                 <ul>
-                  {group.contributions.map((contribution, contributionIndex) => (
-                    <li key={contributionIndex}>
-                      {contribution.source.kind === 'shopping'
-                        ? messages.sourceShopping
-                        : messages.sourceRecipe(
-                            contribution.source.title,
-                            contribution.source.assignment.dayOffset + 1,
-                            planning.meals[contribution.source.assignment.meal],
-                          )}
-                      :{' '}
-                      {formatQuantity(contribution.quantity, shopping.units) ??
-                        messages.unspecified}
-                    </li>
-                  ))}
+                  {group.contributions.map((contribution, contributionIndex) => {
+                    const amount = contribution.scaledAmount;
+                    const unit = contribution.quantity.unit;
+                    const unitName =
+                      amount && unit
+                        ? amount.numerator === amount.denominator
+                          ? shopping.units[unit].singular
+                          : shopping.units[unit].plural
+                        : undefined;
+                    return (
+                      <li key={contributionIndex}>
+                        {contribution.source.kind === 'shopping'
+                          ? messages.sourceShopping
+                          : messages.sourceRecipe(
+                              contribution.source.title,
+                              contribution.source.assignment.dayOffset + 1,
+                              planning.meals[contribution.source.assignment.meal],
+                              contribution.source.yield,
+                            )}
+                        :{' '}
+                        {formatQuantity(contribution.quantity, shopping.units) ??
+                          messages.unspecified}
+                        {contribution.source.kind === 'recipe' && (
+                          <>
+                            {' — '}
+                            <span>
+                              {amount && unitName
+                                ? messages.scaledContribution(
+                                    `${formatExactAmount(amount)} ${unitName}`,
+                                  )
+                                : messages.noScaledAmount}
+                            </span>
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <label htmlFor={`${id}-unit`}>{messages.unit(group.name)}</label>
                 <select

@@ -8,7 +8,7 @@ import { DexieMenuAssignmentStore } from './dexie-menu-assignment-store';
 
 let counter = 0;
 const uniqueName = () => `assignments-${String(++counter)}`;
-const menu = { id: 'menu', name: 'Week', startDate: '2026-11-18' };
+const menu = { id: 'menu', name: 'Week', startDate: '2026-11-18', servings: 4 };
 const recipe: Recipe = {
   id: 'recipe',
   title: 'Soup',

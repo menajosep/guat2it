@@ -27,6 +27,18 @@ export class DexieWeeklyMenuStore implements WeeklyMenuStore {
     });
   }
 
+  updateServings(id: string, servings: number): Promise<WeeklyMenu | undefined> {
+    return guard('save-weekly-menu', () =>
+      this.db.transaction('rw', this.db.weeklyMenus, async () => {
+        const menu = await this.db.weeklyMenus.get(id);
+        if (!menu) return undefined;
+        const updated = { ...menu, servings };
+        await this.db.weeklyMenus.put(updated);
+        return updated;
+      }),
+    );
+  }
+
   remove(id: string): Promise<boolean> {
     return guard('remove-weekly-menu', () =>
       this.db.transaction('rw', this.db.weeklyMenus, this.db.menuAssignments, async () => {

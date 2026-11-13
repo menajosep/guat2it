@@ -21,6 +21,7 @@ test('plans a meal, prevents duplicates and deletion, and removes the persisted 
   await navigate(page, 'Weekly menus');
   await page.getByLabel('Start date').fill('2026-11-18');
   await page.getByLabel('Menu name').fill('Family meals');
+  await page.getByLabel('Servings', { exact: true }).fill('4');
   await page.getByRole('button', { name: 'Create weekly menu' }).click();
   const menuList = page.getByRole('list', { name: 'Saved weekly menus' });
   await menuList.getByRole('button', { name: 'Select menu' }).click();
@@ -100,8 +101,10 @@ test('distinguishes selected entries for menus with identical names and dates', 
   await navigate(page, 'Weekly menus');
   await page.getByLabel('Start date').fill('2026-11-18');
   await page.getByLabel('Menu name').fill('Same');
+  await page.getByLabel('Servings', { exact: true }).fill('4');
   await page.getByRole('button', { name: 'Create weekly menu' }).click();
   await page.getByLabel('Menu name').fill('Same');
+  await page.getByLabel('Servings', { exact: true }).fill('4');
   await page.getByRole('button', { name: 'Create weekly menu' }).click();
   const buttons = page.getByRole('list', { name: 'Saved weekly menus' }).getByRole('button', {
     name: 'Select menu',
@@ -131,8 +134,10 @@ test('confirms deletion of a populated menu without deleting recipes or other as
   await navigate(page, 'Weekly menus');
   await page.getByLabel('Start date').fill('2026-11-18');
   await page.getByLabel('Menu name').fill('First menu');
+  await page.getByLabel('Servings', { exact: true }).fill('4');
   await page.getByRole('button', { name: 'Create weekly menu' }).click();
   await page.getByLabel('Menu name').fill('Second menu');
+  await page.getByLabel('Servings', { exact: true }).fill('2');
   await page.getByRole('button', { name: 'Create weekly menu' }).click();
   const list = page.getByRole('list', { name: 'Saved weekly menus' });
   const first = list.getByRole('listitem').filter({ hasText: 'First menu' });
