@@ -12,12 +12,19 @@ import { RecipeReview } from '../components/RecipeReview';
 import {
   isRecipeCategory,
   RECIPE_CATEGORIES,
+  RECIPE_LABELS,
+  RECIPE_LABEL_FACETS,
   recipeToDraft,
   type Recipe,
   type RecipeCategory,
   type RecipeDraft,
   type RecipeErrors,
 } from '../domain/recipe';
+import {
+  emptyRecipeLabelFilter,
+  matchesRecipeLabelFilter,
+  type RecipeLabelFilter,
+} from '../domain/recipe-label-filter';
 import { useRecipeService } from '../hooks/recipe-service-context';
 import { recipeMessages } from '../messages/recipe-messages';
 import { AssignRecipe } from '../../weekly-menus/components/AssignRecipe';
@@ -37,6 +44,7 @@ export function RecipesPage() {
   const [status, setStatus] = useState<Status>('loading');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeFilter, setRecipeFilter] = useState<RecipeFilter>('all');
+  const [labelFilter, setLabelFilter] = useState<RecipeLabelFilter>(emptyRecipeLabelFilter);
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [sourceUrl, setSourceUrl] = useState('');
   const [source, setSource] = useState('');
@@ -197,12 +205,18 @@ export function RecipesPage() {
     encoding: messages.encodingError,
     unexpected: messages.importUnexpected,
   };
-  const visibleRecipes =
-    recipeFilter === 'all'
-      ? recipes
-      : recipeFilter === 'uncategorized'
-        ? recipes.filter((recipe) => recipe.category === undefined)
-        : recipes.filter((recipe) => recipe.category === recipeFilter);
+  const visibleRecipes = recipes.filter((recipe) => {
+    const matchesCategory =
+      recipeFilter === 'all'
+        ? true
+        : recipeFilter === 'uncategorized'
+          ? recipe.category === undefined
+          : recipe.category === recipeFilter;
+    return matchesCategory && matchesRecipeLabelFilter(recipe.labels, labelFilter);
+  });
+  const activeFilterCount =
+    (recipeFilter === 'all' ? 0 : 1) +
+    RECIPE_LABEL_FACETS.reduce((count, facet) => count + labelFilter[facet].length, 0);
 
   return (
     <IonPage>
@@ -237,30 +251,80 @@ export function RecipesPage() {
                     <p>{messages.empty}</p>
                   ) : (
                     <>
-                      <div className="recipe-category-filter">
-                        <label htmlFor="recipe-category-filter">{messages.categoryFilter}</label>
-                        <select
-                          id="recipe-category-filter"
-                          value={recipeFilter}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            if (
-                              value === 'all' ||
-                              value === 'uncategorized' ||
-                              isRecipeCategory(value)
-                            )
-                              setRecipeFilter(value);
-                          }}
-                        >
-                          <option value="all">{messages.allRecipes}</option>
-                          {RECIPE_CATEGORIES.map((category) => (
-                            <option key={category} value={category}>
-                              {messages.categories[category]}
-                            </option>
-                          ))}
-                          <option value="uncategorized">{messages.uncategorized}</option>
-                        </select>
-                      </div>
+                      <details className="recipe-filter-section">
+                        <summary>
+                          {messages.recipeFilters} ({messages.activeFilterCount(activeFilterCount)})
+                        </summary>
+                        <div className="recipe-filter-section__content">
+                          <div className="recipe-category-filter">
+                            <label htmlFor="recipe-category-filter">
+                              {messages.categoryFilter}
+                            </label>
+                            <select
+                              id="recipe-category-filter"
+                              value={recipeFilter}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                if (
+                                  value === 'all' ||
+                                  value === 'uncategorized' ||
+                                  isRecipeCategory(value)
+                                )
+                                  setRecipeFilter(value);
+                              }}
+                            >
+                              <option value="all">{messages.allRecipes}</option>
+                              {RECIPE_CATEGORIES.map((category) => (
+                                <option key={category} value={category}>
+                                  {messages.categories[category]}
+                                </option>
+                              ))}
+                              <option value="uncategorized">{messages.uncategorized}</option>
+                            </select>
+                          </div>
+                          <fieldset className="recipe-label-filter">
+                            <legend>{messages.labelFilters}</legend>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLabelFilter(emptyRecipeLabelFilter());
+                              }}
+                            >
+                              {messages.clearLabelFilters}
+                            </button>
+                            <div className="recipe-label-filter__facets">
+                              {RECIPE_LABEL_FACETS.map((facet) => (
+                                <details className="recipe-label-filter__facet" key={facet}>
+                                  <summary>
+                                    {messages.labelFacets[facet]} (
+                                    {messages.selectedLabelCount(labelFilter[facet].length)})
+                                  </summary>
+                                  <div className="recipe-label-filter__options">
+                                    {RECIPE_LABELS[facet].map((label) => (
+                                      <label key={label}>
+                                        <input
+                                          type="checkbox"
+                                          checked={labelFilter[facet].includes(label)}
+                                          onChange={(event) => {
+                                            const selected = labelFilter[facet];
+                                            setLabelFilter({
+                                              ...labelFilter,
+                                              [facet]: event.target.checked
+                                                ? [...selected, label]
+                                                : selected.filter((item) => item !== label),
+                                            });
+                                          }}
+                                        />
+                                        {messages.labels[label]}
+                                      </label>
+                                    ))}
+                                  </div>
+                                </details>
+                              ))}
+                            </div>
+                          </fieldset>
+                        </div>
+                      </details>
                       {visibleRecipes.length === 0 ? (
                         <p>{messages.noMatches}</p>
                       ) : (
@@ -367,6 +431,25 @@ export function RecipesPage() {
                   ? messages.categories[selected.category]
                   : messages.uncategorized}
               </p>
+              <h2>{messages.recipeLabels}</h2>
+              <p>{messages.labelSafetyNote}</p>
+              {(selected.labels ?? []).length === 0 ? (
+                <p>{messages.unlabeled}</p>
+              ) : (
+                <ul>
+                  {RECIPE_LABEL_FACETS.map((facet) => {
+                    const labels = (selected.labels ?? []).filter((label) =>
+                      RECIPE_LABELS[facet].some((option) => option === label),
+                    );
+                    return labels.length > 0 ? (
+                      <li key={facet}>
+                        {messages.labelFacets[facet]}:{' '}
+                        {labels.map((label) => messages.labels[label]).join(', ')}
+                      </li>
+                    ) : null;
+                  })}
+                </ul>
+              )}
               <h2>{messages.ingredients}</h2>
               <ul>
                 {selected.ingredients.map((ingredient, index) => {

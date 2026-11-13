@@ -191,7 +191,7 @@ test('cancels recipe edits and persists saved changes after reload', async ({ pa
   await expect(page.getByText('Simmer slowly.')).toBeVisible();
 });
 
-test('categorizes, filters, edits, and reloads recipes including uncategorized recipes', async ({
+test('labels, filters, edits, and reloads recipes including uncategorized recipes', async ({
   page,
 }) => {
   await page.route('https://images.example.com/**', (route) => route.abort());
@@ -199,7 +199,12 @@ test('categorizes, filters, edits, and reloads recipes including uncategorized r
   await page.getByRole('button', { name: 'Open menu' }).click();
   await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
 
-  const importRecipe = async (title: string, ingredient: string, category?: string) => {
+  const importRecipe = async (
+    title: string,
+    ingredient: string,
+    category?: string,
+    labels: readonly string[] = [],
+  ) => {
     const source = `<script type="application/ld+json">${JSON.stringify({
       '@type': 'Recipe',
       name: title,
@@ -213,13 +218,37 @@ test('categorizes, filters, edits, and reloads recipes including uncategorized r
     await page.getByLabel('Page source').fill(source);
     await page.getByRole('button', { name: 'Review recipe' }).click();
     if (category) await page.getByLabel('Category').selectOption({ label: category });
+    const facetByLabel: Record<string, string> = {
+      Poultry: 'Main Ingredient',
+      Beef: 'Main Ingredient',
+      Vegetables: 'Main Ingredient',
+      'Oven/Roast': 'Cooking Method',
+      Vegetarian: 'Dietary & Allergens',
+      'No-Cook': 'Cooking Method',
+    };
+    const facets = [...new Set(labels.map((label) => facetByLabel[label]))];
+    for (const facet of facets) {
+      if (!facet) throw new Error('Recipe label has no facet');
+      await page.locator('.recipe-label-group summary').filter({ hasText: facet }).click();
+    }
+    for (const label of labels) await page.getByRole('checkbox', { name: label }).check();
     await page.getByRole('button', { name: 'Save recipe' }).click();
     await expect(page.getByRole('button', { name: title })).toBeVisible();
   };
 
-  await importRecipe('Lentil soup', '200 g lentils', 'Desserts');
-  await importRecipe('Green salad', '100 g lettuce');
+  await importRecipe('Lentil soup', '200 g lentils', 'Desserts', [
+    'Poultry',
+    'Oven/Roast',
+    'Vegetarian',
+  ]);
+  await importRecipe('Beef roast', '200 g beef', 'Desserts', ['Beef', 'Oven/Roast']);
+  await importRecipe('Green salad', '100 g lettuce', undefined, ['Vegetables', 'No-Cook']);
 
+  const filterSection = page.locator('.recipe-filter-section');
+  const filterSummary = filterSection.locator(':scope > summary');
+  await expect(filterSummary).toHaveText('Recipe filters (0 active filters)');
+  await expect(filterSection).not.toHaveAttribute('open');
+  await filterSummary.click();
   const filter = page.getByLabel('Filter recipes by category');
   await expect(filter).toHaveValue('all');
   await page.setViewportSize({ width: 320, height: 640 });
@@ -237,6 +266,14 @@ test('categorizes, filters, edits, and reloads recipes including uncategorized r
   expect(narrowLayout.selectTop).toBeGreaterThanOrEqual(narrowLayout.labelBottom);
   expect(narrowLayout.selectWidth).toBeGreaterThan(200);
   expect(narrowLayout.panelRight).toBeLessThanOrEqual(320);
+  const labelPanel = page.locator('.recipe-label-filter');
+  await expect(labelPanel).toBeVisible();
+  const narrowLabelPanel = await labelPanel.evaluate((element) => ({
+    right: element.getBoundingClientRect().right,
+    fits: element.scrollWidth <= element.clientWidth,
+  }));
+  expect(narrowLabelPanel.right).toBeLessThanOrEqual(320);
+  expect(narrowLabelPanel.fits).toBe(true);
   await page.setViewportSize({ width: 1024, height: 768 });
   const wideLayout = await page.locator('.recipe-category-filter').evaluate((element) => {
     const label = element.querySelector('label');
@@ -250,17 +287,48 @@ test('categorizes, filters, edits, and reloads recipes including uncategorized r
   expect(wideLayout.selectLeft).toBeGreaterThan(wideLayout.labelLeft);
 
   await filter.selectOption('desserts');
+  const mainIngredientFacet = page
+    .locator('.recipe-label-filter__facet summary')
+    .filter({ hasText: 'Main Ingredient' });
+  await mainIngredientFacet.focus();
+  await page.keyboard.press('Space');
+  const poultryFilter = page.getByRole('checkbox', { name: 'Poultry' });
+  await poultryFilter.focus();
+  await page.keyboard.press('Space');
+  await expect(poultryFilter).toBeChecked();
+  await page.getByRole('checkbox', { name: 'Beef' }).check();
+  await page
+    .locator('.recipe-label-filter__facet summary')
+    .filter({ hasText: 'Cooking Method' })
+    .click();
+  await page.getByRole('checkbox', { name: 'Oven/Roast' }).check();
+  await page
+    .locator('.recipe-label-filter__facet summary')
+    .filter({ hasText: 'Dietary & Allergens' })
+    .click();
+  await page.getByRole('checkbox', { name: 'Vegetarian' }).check();
+  await filterSummary.click();
+  await expect(filterSummary).toHaveText('Recipe filters (5 active filters)');
+  await expect(filterSection).not.toHaveAttribute('open');
+  await filterSummary.click();
+  await expect(page.getByRole('checkbox', { name: 'Poultry' })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Beef' })).toBeChecked();
   await expect(page.getByRole('button', { name: 'Lentil soup' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Beef roast' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Green salad' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Lentil soup' }).click();
   await expect(page.getByText('Category: Desserts')).toBeVisible();
   await page.getByRole('button', { name: 'Edit recipe' }).click();
+  await page.locator('.recipe-label-group summary').filter({ hasText: 'Main Ingredient' }).click();
   await page.getByLabel('Category').selectOption('soups-stews');
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Category: Soups & Stews')).toBeVisible();
   await page.getByRole('button', { name: 'Back to recipes' }).click();
-  await expect(page.getByText('No recipes match this category.')).toBeVisible();
+  await expect(page.getByText('No recipes match the selected filters.')).toBeVisible();
+  await filterSummary.click();
   await filter.selectOption('soups-stews');
+  await expect(page.getByRole('button', { name: 'Lentil soup' })).toBeVisible();
+  await page.getByRole('button', { name: 'Clear label filters' }).click();
   await expect(page.getByRole('button', { name: 'Lentil soup' })).toBeVisible();
 
   await page.reload();
@@ -268,7 +336,15 @@ test('categorizes, filters, edits, and reloads recipes including uncategorized r
   await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
   await page.getByRole('button', { name: 'Lentil soup' }).click();
   await expect(page.getByText('Category: Soups & Stews')).toBeVisible();
+  await expect(page.getByText('Main Ingredient: Poultry')).toBeVisible();
+  await expect(page.getByText('Dietary & Allergens: Vegetarian')).toBeVisible();
+  await expect(
+    page.getByText(
+      'Dietary and allergen labels are user-assigned and are not verified safety claims.',
+    ),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Back to recipes' }).click();
+  await filterSummary.click();
   await page.getByLabel('Filter recipes by category').selectOption('uncategorized');
   await expect(page.getByRole('button', { name: 'Green salad' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Lentil soup' })).toHaveCount(0);

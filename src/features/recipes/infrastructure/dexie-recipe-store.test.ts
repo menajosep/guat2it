@@ -114,11 +114,19 @@ describe('DexieRecipeStore', () => {
     const name = uniqueName();
     const db = new AppDatabase(name);
     const store = new DexieRecipeStore(db);
-    const categorized: Recipe = { ...recipe, category: 'desserts' };
+    const categorized: Recipe = {
+      ...recipe,
+      category: 'desserts',
+      labels: ['main-poultry', 'method-oven-roast'],
+    };
     await store.save(categorized);
     expect(await store.get(recipe.id)).toEqual(categorized);
     expect(await store.list()).toEqual([categorized]);
-    const updated: Recipe = { ...categorized, category: 'soups-stews' };
+    const updated: Recipe = {
+      ...categorized,
+      category: 'soups-stews',
+      labels: ['diet-vegetarian'],
+    };
     await store.update(updated);
     db.close();
 

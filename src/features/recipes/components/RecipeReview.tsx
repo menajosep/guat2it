@@ -3,6 +3,8 @@ import { useShoppingListMessages } from '../../shopping-list/hooks/use-shopping-
 import {
   isRecipeCategory,
   RECIPE_CATEGORIES,
+  RECIPE_LABELS,
+  RECIPE_LABEL_FACETS,
   type IngredientDraft,
   type RecipeDraft,
   type RecipeErrors,
@@ -80,6 +82,43 @@ export function RecipeReview({
         ))}
       </select>
       {errors?.category && <p role="alert">{messages.invalidCategory}</p>}
+
+      <fieldset className="recipe-labels">
+        <legend>{messages.recipeLabels}</legend>
+        <p>{messages.labelSafetyNote}</p>
+        {RECIPE_LABEL_FACETS.map((facet) => (
+          <details className="recipe-label-group" key={facet}>
+            <summary>
+              {messages.labelFacets[facet]} (
+              {messages.selectedLabelCount(
+                RECIPE_LABELS[facet].filter((label) => (draft.labels ?? []).includes(label)).length,
+              )}
+              )
+            </summary>
+            <div className="recipe-label-group__options">
+              {RECIPE_LABELS[facet].map((label) => (
+                <label key={label}>
+                  <input
+                    type="checkbox"
+                    checked={(draft.labels ?? []).includes(label)}
+                    onChange={(event) => {
+                      const labels = draft.labels ?? [];
+                      onChange({
+                        ...draft,
+                        labels: event.target.checked
+                          ? [...labels, label]
+                          : labels.filter((selected) => selected !== label),
+                      });
+                    }}
+                  />
+                  {messages.labels[label]}
+                </label>
+              ))}
+            </div>
+          </details>
+        ))}
+      </fieldset>
+      {errors?.labels && <p role="alert">{messages.invalidLabels}</p>}
 
       <label htmlFor="recipe-yield">{messages.yield}</label>
       <input

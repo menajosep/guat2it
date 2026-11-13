@@ -84,6 +84,24 @@ async function startReview(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByLabelText('Title');
 }
 
+async function expandFilterSection(user: ReturnType<typeof userEvent.setup>, name: string) {
+  const summary = await screen.findByText(
+    (content, element) => element?.tagName === 'SUMMARY' && content.startsWith(name),
+  );
+  const details = summary.closest('details');
+  if (!details) throw new Error(`Filter section "${name}" has no disclosure control`);
+  if (!details.open) await user.click(summary);
+}
+
+async function expandLabelFacet(user: ReturnType<typeof userEvent.setup>, name: string) {
+  const summary = screen.getByText(
+    (content, element) => element?.tagName === 'SUMMARY' && content.startsWith(name),
+  );
+  const details = summary.closest('details');
+  if (!details) throw new Error(`Label facet "${name}" has no disclosure control`);
+  if (!details.open) await user.click(summary);
+}
+
 async function createSavedRecipe(user: ReturnType<typeof userEvent.setup>) {
   const { recipes } = renderApp();
   await openRecipes(user);
@@ -162,6 +180,7 @@ it('filters categorized and legacy recipes, retains the filter, and localizes ca
     />,
   );
   await openRecipes(user);
+  await expandFilterSection(user, 'Recipe filters');
 
   const filter = await screen.findByRole('combobox', { name: 'Filter recipes by category' });
   expect(filter).toHaveValue('all');
@@ -171,6 +190,7 @@ it('filters categorized and legacy recipes, retains the filter, and localizes ca
   await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
   expect(await screen.findByText('Category: Desserts')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+  await expandFilterSection(user, 'Recipe filters');
   expect(screen.getByRole('combobox', { name: 'Filter recipes by category' })).toHaveValue(
     'desserts',
   );
@@ -187,11 +207,14 @@ it('filters categorized and legacy recipes, retains the filter, and localizes ca
   await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
   expect(await screen.findByText('Categoría: Sopas y guisos')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Volver a recetas' }));
+  await expandFilterSection(user, 'Filtros de recetas');
   const spanishFilter = await screen.findByRole('combobox', {
     name: 'Filtrar recetas por categoría',
   });
   expect(spanishFilter).toHaveValue('uncategorized');
-  expect(await screen.findByText('No hay recetas en esta categoría.')).toBeInTheDocument();
+  expect(
+    await screen.findByText('No hay recetas que coincidan con los filtros seleccionados.'),
+  ).toBeInTheDocument();
 
   await user.selectOptions(spanishFilter, 'soups-stews');
   expect(await screen.findByRole('button', { name: 'Green salad' })).toBeInTheDocument();
@@ -201,14 +224,19 @@ it('filters categorized and legacy recipes, retains the filter, and localizes ca
   await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
   expect(await screen.findByText('Categoría: Sin categoría')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Volver a recetas' }));
-  expect(await screen.findByText('No hay recetas en esta categoría.')).toBeInTheDocument();
+  await expandFilterSection(user, 'Filtros de recetas');
+  expect(
+    await screen.findByText('No hay recetas que coincidan con los filtros seleccionados.'),
+  ).toBeInTheDocument();
   const filterAfterClear = screen.getByRole('combobox', {
     name: 'Filtrar recetas por categoría',
   });
   await user.selectOptions(filterAfterClear, 'uncategorized');
   expect(await screen.findByRole('button', { name: 'Green salad' })).toBeInTheDocument();
   await user.selectOptions(filterAfterClear, 'beverages');
-  expect(await screen.findByText('No hay recetas en esta categoría.')).toBeInTheDocument();
+  expect(
+    await screen.findByText('No hay recetas que coincidan con los filtros seleccionados.'),
+  ).toBeInTheDocument();
   await user.selectOptions(filterAfterClear, 'all');
   expect(await screen.findByRole('button', { name: 'Lentil soup' })).toBeInTheDocument();
   const saved = await recipes.list();
@@ -218,6 +246,124 @@ it('filters categorized and legacy recipes, retains the filter, and localizes ca
       ['Green salad', undefined],
     ]),
   );
+});
+
+it('filters by multiple labels with OR within facets and AND across facets', async () => {
+  const user = userEvent.setup();
+  const database = `recipe-label-filters-${String(++counter)}`;
+  const recipes = createRecipeService(database);
+  const common = {
+    sourceUrl: 'https://www.directoalpaladar.com/example',
+    yield: '2',
+    ingredients: [
+      {
+        source: '',
+        name: 'lentils',
+        quantity: { amount: '200', unit: 'gram' as const },
+        confirmed: true,
+      },
+    ],
+    instructions: 'Cook gently.',
+    imageUrl: 'https://images.example.com/soup.jpg',
+  };
+  await recipes.save({
+    ...common,
+    title: 'Poultry soup',
+    category: 'desserts',
+    labels: ['main-poultry', 'method-oven-roast', 'diet-vegetarian'],
+  });
+  await recipes.save({
+    ...common,
+    title: 'Beef roast',
+    category: 'desserts',
+    labels: ['main-beef', 'method-oven-roast'],
+  });
+  await recipes.save({
+    ...common,
+    title: 'Green salad',
+    labels: ['main-vegetables', 'method-no-cook'],
+  });
+  await recipes.save({ ...common, title: 'Legacy recipe' });
+  render(
+    <App
+      shoppingListService={createShoppingListService(database)}
+      languageService={createLanguageService()}
+      recipeService={recipes}
+      weeklyMenuService={createWeeklyMenuService(database)}
+    />,
+  );
+  await openRecipes(user);
+
+  const filterSection = await screen.findByText(/^Recipe filters/);
+  expect(filterSection).toHaveTextContent('0 active filters');
+  expect(filterSection.closest('details')).not.toHaveAttribute('open');
+  await expandFilterSection(user, 'Recipe filters');
+  expect(screen.getByRole('combobox', { name: 'Filter recipes by category' })).toBeVisible();
+  expect((await screen.findByText(/^Main Ingredient/)).closest('details')).not.toHaveAttribute(
+    'open',
+  );
+  await expandLabelFacet(user, 'Main Ingredient');
+  expect(screen.getByText(/^Main Ingredient/)).toHaveTextContent('0 selected');
+  await user.click(await screen.findByRole('checkbox', { name: 'Poultry' }));
+  expect(screen.getByText(/^Main Ingredient/)).toHaveTextContent('1 selected');
+  await user.click(screen.getByText(/^Main Ingredient/));
+  expect(screen.getByText(/^Main Ingredient/).closest('details')).not.toHaveAttribute('open');
+  await expandLabelFacet(user, 'Main Ingredient');
+  await user.click(screen.getByRole('checkbox', { name: 'Beef' }));
+  expect(screen.getByText(/^Main Ingredient/)).toHaveTextContent('2 selected');
+  await user.click(screen.getByText(/^Main Ingredient/));
+  expect(screen.getByText(/^Main Ingredient/).closest('details')).not.toHaveAttribute('open');
+  await expandLabelFacet(user, 'Cooking Method');
+  await user.click(screen.getByRole('checkbox', { name: 'Oven/Roast' }));
+  expect(await screen.findByRole('button', { name: 'Poultry soup' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Beef roast' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Green salad' })).not.toBeInTheDocument();
+
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Filter recipes by category' }),
+    'desserts',
+  );
+  await expandLabelFacet(user, 'Dietary & Allergens');
+  await user.click(screen.getByRole('checkbox', { name: 'Vegetarian' }));
+  expect(await screen.findByRole('button', { name: 'Poultry soup' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Beef roast' })).not.toBeInTheDocument();
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(screen.getByRole('checkbox', { name: 'Aves' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Ternera' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Horno/Asado' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Vegetariano' })).toBeChecked();
+  await user.click(screen.getByRole('button', { name: 'Poultry soup' }));
+  await user.click(screen.getByRole('button', { name: 'Volver a recetas' }));
+  await expandFilterSection(user, 'Filtros de recetas');
+  await expandLabelFacet(user, 'Ingrediente principal');
+  expect(screen.getByRole('checkbox', { name: 'Aves' })).toBeChecked();
+  await expandLabelFacet(user, 'Cocina / Región');
+  await user.click(screen.getByRole('checkbox', { name: 'Italiana' }));
+  expect(screen.getByRole('checkbox', { name: 'Italiana' })).toBeChecked();
+  expect(
+    await screen.findByText('No hay recetas que coincidan con los filtros seleccionados.'),
+  ).toBeInTheDocument();
+
+  await user.click(screen.getByText(/^Filtros de recetas/));
+  expect(screen.getByText(/^Filtros de recetas/)).toHaveTextContent('6 filtros activos');
+  expect(screen.getByText(/^Filtros de recetas/).closest('details')).not.toHaveAttribute('open');
+  await expandFilterSection(user, 'Filtros de recetas');
+  expect(screen.getByRole('checkbox', { name: 'Aves' })).toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Ternera' })).toBeChecked();
+  await user.click(screen.getByRole('button', { name: 'Quitar filtros de etiquetas' }));
+  expect(await screen.findByRole('button', { name: 'Poultry soup' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Beef roast' })).toBeInTheDocument();
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Filtrar recetas por categoría' }),
+    'all',
+  );
+  expect(screen.getByRole('button', { name: 'Green salad' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Legacy recipe' })).toBeInTheDocument();
+
+  await user.click(screen.getByRole('button', { name: 'Poultry soup' }));
+  expect(await screen.findByText('Ingrediente principal: Aves')).toBeInTheDocument();
+  expect(screen.getByText('Dietas y alérgenos: Vegetariano')).toBeInTheDocument();
+  expect(screen.getByText(/no son garantías de seguridad verificadas/i)).toBeInTheDocument();
 });
 
 it('keeps failed and invalid thumbnails accessible and independent when language changes', async () => {
@@ -288,6 +434,13 @@ it('retains unresolved ingredients, requires confirmation, and saves the correct
   await openRecipes(user);
   await startReview(user);
   await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'desserts');
+  await expandLabelFacet(user, 'Main Ingredient');
+  await user.click(screen.getByRole('checkbox', { name: 'Poultry' }));
+  await expandLabelFacet(user, 'Cooking Method');
+  await user.click(screen.getByRole('checkbox', { name: 'Oven/Roast' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(screen.getByRole('checkbox', { name: 'Aves' })).toBeChecked();
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'en');
   await user.click(screen.getByRole('button', { name: 'Save recipe' }));
   expect(screen.getByText('Review and confirm this ingredient.')).toHaveAttribute('role', 'alert');
   const ingredient = screen.getByRole('group', { name: 'Ingredients 2' });
@@ -303,6 +456,7 @@ it('retains unresolved ingredients, requires confirmation, and saves the correct
     {
       title: 'Lentil soup',
       category: 'desserts',
+      labels: ['main-poultry', 'method-oven-roast'],
       ingredients: [{ name: 'lentils', amount: 200 }, { name: 'salt' }],
     },
   ]);
@@ -523,6 +677,10 @@ it('edits saved recipe fields and ingredient order without changing its identity
   await user.type(screen.getByLabelText('Instructions'), 'Simmer slowly.');
   await user.clear(screen.getByLabelText('Picture URL'));
   await user.type(screen.getByLabelText('Picture URL'), 'https://images.example.com/updated.jpg');
+  await expandLabelFacet(user, 'Main Ingredient');
+  await user.click(screen.getByRole('checkbox', { name: 'Poultry' }));
+  await expandLabelFacet(user, 'Cooking Method');
+  await user.click(screen.getByRole('checkbox', { name: 'Oven/Roast' }));
 
   const salt = screen.getByRole('group', { name: 'Ingredients 2' });
   await user.click(within(salt).getByRole('button', { name: 'Remove ingredient' }));
@@ -543,6 +701,7 @@ it('edits saved recipe fields and ingredient order without changing its identity
     ingredients: [{ name: 'lentils', amount: 200 }, { name: 'pepper' }],
     instructions: 'Simmer slowly.',
     imageUrl: 'https://images.example.com/updated.jpg',
+    labels: ['main-poultry', 'method-oven-roast'],
   });
 
   await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
@@ -561,6 +720,8 @@ it('cancels recipe editing without changing saved values', async () => {
   await user.clear(screen.getByLabelText('Title'));
   await user.type(screen.getByLabelText('Title'), 'Not saved');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'desserts');
+  await expandLabelFacet(user, 'Dietary & Allergens');
+  await user.click(screen.getByRole('checkbox', { name: 'Vegetarian' }));
   await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
   expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
@@ -602,6 +763,8 @@ it('retains the edit draft and translates storage failures when language changes
   await user.clear(screen.getByLabelText('Title'));
   await user.type(screen.getByLabelText('Title'), 'Updated soup');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'desserts');
+  await expandLabelFacet(user, 'Main Ingredient');
+  await user.click(screen.getByRole('checkbox', { name: 'Poultry' }));
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
   expect(
@@ -609,6 +772,8 @@ it('retains the edit draft and translates storage failures when language changes
   ).toHaveAttribute('role', 'alert');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
   expect(screen.getByLabelText('Título')).toHaveValue('Updated soup');
+  await expandLabelFacet(user, 'Ingrediente principal');
+  expect(screen.getByRole('checkbox', { name: 'Aves' })).toBeChecked();
   expect(
     screen.getByText('No se pudo actualizar la receta porque falló el almacenamiento local.'),
   ).toBeInTheDocument();

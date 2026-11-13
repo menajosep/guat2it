@@ -44,6 +44,10 @@ The CLI is a dev dependency, so use `npx openspec ...` (or the npm scripts). Can
 - Recipe import tests use synthetic JSON-LD fixtures and do not depend on network access. The Playwright recipe flow blocks the sample image request.
 - Web recipe import uses a URL plus pasted page source; Android and iOS use native URL-only downloads through the bounded RecipePage plugin. Android URL-only import was verified by the user; iOS device verification remains outstanding and requires macOS/Xcode and an iOS device or simulator.
 
+## Recipe labels
+
+Recipe labels are fixed, language-independent domain identifiers defined by facet. Translation maps cover every identifier in English, Spanish, and Catalan. Keep labels separate from the single course category and from shopping-list categories. List filters match any selected value within a facet and require a match in every selected facet; they compose with the course-category filter. The whole filter section and its individual facet disclosure controls are native and initially collapsed; summaries display localized counts of active filters and selected labels respectively. Treat dietary and allergen labels as user-assigned metadata, never as verified safety claims.
+
 ## Native platforms (Capacitor)
 
 See the README for the commands. The application ID in `capacitor.config.ts` is a placeholder (`com.example.guat2it`); change it before running `npx cap add`. Native projects (`android/`, `ios/`) are generated locally; their build output and signing files are git-ignored.

@@ -34,6 +34,8 @@ To edit a saved recipe, open it from the recipe list and select **Edit recipe**.
 
 Recipes can optionally be assigned one course category while reviewing an import or editing a saved recipe. Use the category filter to browse all recipes, one course, or uncategorized recipes. Recipes saved before categories were added remain available as uncategorized until edited; category choices are stored locally with each recipe.
 
+Recipes can also have multiple labels across main ingredient, cooking method, dietary and allergen, cuisine and region, and meal occasion and effort facets. Assign labels while reviewing an import or editing a saved recipe; filter by any selected value within a facet and by every selected facet, together with the course category filter. The recipe filter section starts collapsed and summarizes active filters; expand it to change the course or label filters. Label facets also start collapsed and show their selected-label count. Labels are user-assigned, not verified dietary or allergen safety claims. Existing recipes without labels remain available as unlabeled.
+
 ## Prerequisites
 
 - Node.js 22.12 or newer (Capacitor 8 requires Node 22+) and npm

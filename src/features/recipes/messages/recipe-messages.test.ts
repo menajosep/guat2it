@@ -1,5 +1,5 @@
 import { LANGUAGES } from '../../language/domain/language';
-import { RECIPE_CATEGORIES } from '../domain/recipe';
+import { ALL_RECIPE_LABELS, RECIPE_CATEGORIES, RECIPE_LABEL_FACETS } from '../domain/recipe';
 import { recipeMessages } from './recipe-messages';
 
 describe.each(LANGUAGES)('%s recipe messages', (language) => {
@@ -32,6 +32,28 @@ describe.each(LANGUAGES)('%s recipe messages', (language) => {
     expect(messages.invalidCategory.trim()).not.toBe('');
     for (const category of RECIPE_CATEGORIES) {
       expect(messages.categories[category].trim()).not.toBe('');
+    }
+  });
+
+  it('provides nonempty translations for every recipe label and facet', () => {
+    expect(messages.recipeFilters.trim()).not.toBe('');
+    expect(messages.activeFilterCount(0).trim()).not.toBe('');
+    expect(messages.activeFilterCount(1).trim()).not.toBe('');
+    expect(messages.activeFilterCount(2).trim()).not.toBe('');
+    expect(messages.recipeLabels.trim()).not.toBe('');
+    expect(messages.labelFilters.trim()).not.toBe('');
+    expect(messages.clearLabelFilters.trim()).not.toBe('');
+    expect(messages.unlabeled.trim()).not.toBe('');
+    expect(messages.invalidLabels.trim()).not.toBe('');
+    expect(messages.labelSafetyNote.trim()).not.toBe('');
+    expect(messages.selectedLabelCount(0).trim()).not.toBe('');
+    expect(messages.selectedLabelCount(1).trim()).not.toBe('');
+    expect(messages.selectedLabelCount(2).trim()).not.toBe('');
+    for (const facet of RECIPE_LABEL_FACETS) {
+      expect(messages.labelFacets[facet].trim()).not.toBe('');
+    }
+    for (const label of ALL_RECIPE_LABELS) {
+      expect(messages.labels[label].trim()).not.toBe('');
     }
   });
 });
