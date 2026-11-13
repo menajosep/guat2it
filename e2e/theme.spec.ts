@@ -8,21 +8,22 @@ async function color(locator: Locator, property: ColorProperty): Promise<string>
   return locator.evaluate((element, key) => getComputedStyle(element)[key], property);
 }
 
-function contrast(first: string, second: string): number {
-  function luminance(value: string): number {
-    const components = value.match(/[\d.]+/g);
-    if (!components || components.length < 3 || (components[3] && Number(components[3]) !== 1)) {
-      throw new Error(`Expected an opaque RGB color, got ${value}`);
-    }
-    const [red, green, blue] = components.slice(0, 3).map((component) => {
-      const channel = Number(component) / 255;
-      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-    });
-    if (red === undefined || green === undefined || blue === undefined) {
-      throw new Error(`Expected three RGB channels, got ${value}`);
-    }
-    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+function luminance(value: string): number {
+  const components = value.match(/[\d.]+/g);
+  if (!components || components.length < 3 || (components[3] && Number(components[3]) !== 1)) {
+    throw new Error(`Expected an opaque RGB color, got ${value}`);
   }
+  const [red, green, blue] = components.slice(0, 3).map((component) => {
+    const channel = Number(component) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  if (red === undefined || green === undefined || blue === undefined) {
+    throw new Error(`Expected three RGB channels, got ${value}`);
+  }
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function contrast(first: string, second: string): number {
   const [lighter, darker] = [luminance(first), luminance(second)].sort((a, b) => b - a);
   if (lighter === undefined || darker === undefined) throw new Error('Missing luminance');
   return (lighter + 0.05) / (darker + 0.05);
@@ -50,6 +51,51 @@ async function addItem(page: Page, name: string): Promise<void> {
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`${scheme} appearance`, () => {
     test.use({ colorScheme: scheme });
+
+    test('uses lighter main surfaces and readable navigation, category and recipe controls', async ({
+      page,
+    }) => {
+      await page.goto('/');
+      const activeContent = page
+        .locator('#main-content .ion-page:not(.ion-page-hidden) ion-content')
+        .locator('#background-content');
+      const background = await color(activeContent, 'backgroundColor');
+      const previousBackground = scheme === 'light' ? 'rgb(248, 250, 245)' : 'rgb(16, 27, 23)';
+      expect(luminance(background)).toBeGreaterThan(luminance(previousBackground));
+
+      await page.getByRole('button', { name: 'Open menu' }).click();
+      const menu = page.locator('ion-menu');
+      const admin = menu.getByText('Admin', { exact: true });
+      await assertContrast(admin, 'color', admin.locator('.item-native'), 4.5);
+      await admin.click();
+      await expect(page.getByLabel('Category name')).toBeVisible();
+      expect(await color(activeContent, 'backgroundColor')).toBe(background);
+      const categoryName = page.getByLabel('Category name');
+      const addCategory = page.getByRole('button', { name: 'Add category' });
+      await assertContrast(categoryName, 'color', activeContent, 4.5);
+      await assertContrast(categoryName, 'borderTopColor', activeContent, 3);
+      await assertContrast(addCategory, 'color', addCategory, 4.5);
+      await categoryName.focus();
+      await expect(categoryName).toHaveCSS('outline-style', 'solid');
+      await assertContrast(categoryName, 'outlineColor', activeContent, 3);
+      await categoryName.fill('Market');
+      await addCategory.click();
+      await expect(page.getByRole('button', { name: 'Delete category Market' })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Open menu' }).click();
+      await menu.getByText('Recipes', { exact: true }).click();
+      await page.getByRole('button', { name: 'Import recipe' }).click();
+      const recipeUrl = page.getByLabel('Recipe URL');
+      const review = page.getByRole('button', { name: 'Review recipe' });
+      await expect(recipeUrl).toBeVisible();
+      expect(await color(activeContent, 'backgroundColor')).toBe(background);
+      await assertContrast(recipeUrl, 'color', activeContent, 4.5);
+      await assertContrast(recipeUrl, 'borderTopColor', activeContent, 3);
+      await assertContrast(review, 'color', review, 4.5);
+      await recipeUrl.focus();
+      await expect(recipeUrl).toHaveCSS('outline-style', 'solid');
+      await assertContrast(recipeUrl, 'outlineColor', activeContent, 3);
+    });
 
     test('keeps weekly menu fields readable and focusable', async ({ page }) => {
       await page.goto('/');

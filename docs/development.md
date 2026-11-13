@@ -18,6 +18,8 @@
 
 Playwright needs a browser once: `npx playwright install chromium` (on Linux CI also `--with-deps`).
 
+The warm light and dark themes were visually reviewed in Chromium at desktop and mobile viewport sizes. Native Android and iOS device appearances have not been visually verified.
+
 ## OpenSpec workflow (CLI 1.3.1)
 
 The CLI is a dev dependency, so use `npx openspec ...` (or the npm scripts). Canonical specs live in `openspec/specs/`, active changes in `openspec/changes/`, finished ones in `openspec/changes/archive/`. Project context and per-artifact rules are in `openspec/config.yaml`.
