@@ -7,12 +7,14 @@ import {
 } from '../domain/weekly-menu';
 import type { WeeklyMenuStore } from './weekly-menu-store';
 import type { MenuAssignmentService } from './menu-assignment-service';
+import type { MenuTransferService } from './menu-transfer-service';
 
 export class WeeklyMenuService {
   constructor(
     private readonly store: WeeklyMenuStore,
     private readonly generateId: () => string,
     readonly assignments: MenuAssignmentService,
+    readonly transfer: MenuTransferService,
   ) {}
 
   list(): Promise<WeeklyMenu[]> {

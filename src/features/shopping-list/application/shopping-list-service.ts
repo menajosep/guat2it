@@ -91,13 +91,15 @@ export class ShoppingListService {
   async setCompleted(
     id: string,
     completed: boolean,
-  ): Promise<Result<ShoppingItem | undefined, 'missing-category'>> {
-    const item = await this.deps.store.get(id);
+    expected?: ShoppingItem,
+  ): Promise<Result<ShoppingItem | undefined, 'missing-category' | 'conflict'>> {
+    if (expected && expected.id !== id) return fail('conflict');
+    const item = expected ?? (await this.deps.store.get(id));
     if (!item || item.completed === completed) {
       return ok(undefined);
     }
     const updated = withCompleted(item, completed);
-    const saved = await this.deps.store.save(updated);
+    const saved = await this.deps.store.saveIfUnchanged(updated, item);
     if (!saved.ok) return saved;
     return ok(updated);
   }
@@ -130,8 +132,10 @@ export class ShoppingListService {
     rawName: string,
     quantity: QuantityDraft,
     categoryIds?: readonly string[],
+    expected?: ShoppingItem,
   ): Promise<Result<UpdateChange | undefined, ItemErrors>> {
-    const item = await this.deps.store.get(id);
+    if (expected && expected.id !== id) return fail({ conflict: true });
+    const item = expected ?? (await this.deps.store.get(id));
     if (!item) {
       return ok(undefined);
     }
@@ -151,8 +155,12 @@ export class ShoppingListService {
     ) {
       return ok(undefined);
     }
-    const saved = await this.deps.store.save(next);
-    if (!saved.ok) return fail({ categories: saved.error });
+    const saved = await this.deps.store.saveIfUnchanged(next, item);
+    if (!saved.ok) {
+      return saved.error === 'conflict'
+        ? fail({ conflict: true })
+        : fail({ categories: saved.error });
+    }
     return ok({ previous: item, item: next });
   }
 }

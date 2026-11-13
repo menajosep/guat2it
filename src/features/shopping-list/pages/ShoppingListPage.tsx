@@ -57,7 +57,9 @@ export function ShoppingListPage() {
               <ShoppingItemList
                 items={items}
                 categories={categories}
-                onSetCompleted={(id, completed) => void setCompleted(id, completed)}
+                onSetCompleted={(id, completed, expected) =>
+                  void setCompleted(id, completed, expected)
+                }
                 onRemove={(id) => void removeItem(id)}
                 onUpdate={updateItem}
               />

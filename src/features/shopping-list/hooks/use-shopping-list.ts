@@ -42,13 +42,14 @@ export interface ShoppingListState {
     quantity?: QuantityDraft,
     categoryIds?: readonly string[],
   ) => Promise<AddOutcome>;
-  setCompleted: (id: string, completed: boolean) => Promise<void>;
+  setCompleted: (id: string, completed: boolean, expected?: ShoppingItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   updateItem: (
     id: string,
     name: string,
     quantity: QuantityDraft,
     categoryIds?: readonly string[],
+    expected?: ShoppingItem,
   ) => Promise<UpdateOutcome>;
   clearCompleted: () => Promise<void>;
   createCategory: (name: string) => Promise<CategoryOutcome>;
@@ -175,11 +176,14 @@ export function useShoppingList(): ShoppingListState {
   );
 
   const setCompleted = useCallback(
-    async (id: string, completed: boolean) => {
-      const result = await mutate(() => service.setCompleted(id, completed));
+    async (id: string, completed: boolean, expected?: ShoppingItem) => {
+      const result = await mutate(() => service.setCompleted(id, completed, expected));
       if (result.failed) return;
       if (!result.value.ok) {
-        announce('error', (m) => m.categories.errors['missing-category']);
+        const error = result.value.error;
+        announce('error', (m) =>
+          error === 'conflict' ? m.itemChanged : m.categories.errors['missing-category'],
+        );
         return;
       }
       if (!result.value.value) return;
@@ -207,10 +211,19 @@ export function useShoppingList(): ShoppingListState {
       name: string,
       quantity: QuantityDraft,
       categoryIds?: readonly string[],
+      expected?: ShoppingItem,
     ): Promise<UpdateOutcome> => {
-      const result = await mutate(() => service.updateItem(id, name, quantity, categoryIds));
+      const result = await mutate(() =>
+        service.updateItem(id, name, quantity, categoryIds, expected),
+      );
       if (result.failed) return { status: 'failed' };
-      if (!result.value.ok) return { status: 'invalid', errors: result.value.error };
+      if (!result.value.ok) {
+        if (result.value.error.conflict) {
+          announce('error', (m) => m.itemChanged);
+          return { status: 'failed' };
+        }
+        return { status: 'invalid', errors: result.value.error };
+      }
       const change = result.value.value;
       if (!change) return { status: 'unchanged' };
       const { previous, item } = change;

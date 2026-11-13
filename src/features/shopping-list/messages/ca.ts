@@ -126,6 +126,8 @@ export const ca: ShoppingListMessages = {
       "No s'ha pogut suprimir el menú setmanal perquè ha fallat l'emmagatzematge local.",
   },
   fallbackError: 'Alguna cosa ha anat malament. Torna-ho a provar.',
+  itemChanged:
+    "Aquest article ha canviat o s'ha eliminat. Revisa la llista actual i torna-ho a provar.",
   dismissMessage: 'Descarta el missatge',
   clearCompleted: 'Esborra els completats',
   clearCompletedDialog: {

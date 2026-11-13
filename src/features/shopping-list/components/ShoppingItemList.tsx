@@ -12,13 +12,14 @@ import type { Category } from '../domain/category';
 interface ShoppingItemListProps {
   items: readonly ShoppingItem[];
   categories: readonly Category[];
-  onSetCompleted: (id: string, completed: boolean) => void;
+  onSetCompleted: (id: string, completed: boolean, expected: ShoppingItem) => void;
   onRemove: (id: string) => void;
   onUpdate: (
     id: string,
     name: string,
     quantity: QuantityDraft,
     categoryIds: readonly string[],
+    expected?: ShoppingItem,
   ) => Promise<UpdateOutcome>;
 }
 
@@ -96,7 +97,7 @@ export function ShoppingItemList({
                   checked={item.completed}
                   className={item.completed ? 'item-completed' : undefined}
                   onIonChange={(event) => {
-                    onSetCompleted(item.id, event.detail.checked);
+                    onSetCompleted(item.id, event.detail.checked, item);
                   }}
                 >
                   {item.name}

@@ -120,6 +120,7 @@ export const en: ShoppingListMessages = {
     'remove-weekly-menu': 'Could not delete the weekly menu because local storage failed.',
   },
   fallbackError: 'Something went wrong. Please try again.',
+  itemChanged: 'This item changed or was removed. Review the current list and try again.',
   dismissMessage: 'Dismiss message',
   clearCompleted: 'Clear completed',
   clearCompletedDialog: {

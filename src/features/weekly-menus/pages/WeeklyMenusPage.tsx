@@ -18,12 +18,15 @@ import { weeklyMenuMessages } from '../messages/weekly-menu-messages';
 import { planningMessages } from '../messages/planning-messages';
 import { useActiveMenu } from '../hooks/active-menu-context';
 import { MenuSlots } from '../components/MenuSlots';
+import { MenuTransfer } from '../components/MenuTransfer';
+import { transferMessages } from '../messages/transfer-messages';
 
 export function WeeklyMenusPage() {
   const service = useWeeklyMenuService();
   const { language } = useLanguage();
   const messages = weeklyMenuMessages[language];
   const planning = planningMessages[language];
+  const transferTexts = transferMessages[language];
   const {
     menu: activeMenu,
     selectMenu,
@@ -31,6 +34,7 @@ export function WeeklyMenusPage() {
     deletion,
     deleteMenu,
     clearDeletionFeedback,
+    transfer,
   } = useActiveMenu();
   const shoppingMessages = useShoppingListMessages();
   const [draft, setDraft] = useState(() => {
@@ -111,6 +115,28 @@ export function WeeklyMenusPage() {
       <IonContent className="ion-padding">
         <div className="page-column weekly-menus">
           <LanguageNotice />
+          {transfer === 'pending' && <p role="status">{transferTexts.pending}</p>}
+          {transfer === 'success' && <p role="status">{transferTexts.success}</p>}
+          {(transfer === 'stale' ||
+            transfer === 'menu-not-found' ||
+            transfer === 'recipe-not-found' ||
+            transfer === 'invalid' ||
+            transfer === 'storage' ||
+            transfer === 'unexpected') && (
+            <p role="alert">
+              {transfer === 'stale'
+                ? transferTexts.stale
+                : transfer === 'menu-not-found'
+                  ? transferTexts.menuMissing
+                  : transfer === 'recipe-not-found'
+                    ? transferTexts.recipeMissing
+                    : transfer === 'invalid'
+                      ? transferTexts.invalid
+                      : transfer === 'storage'
+                        ? transferTexts.storage
+                        : transferTexts.unexpected}
+            </p>
+          )}
           {deletion === 'deleted' && <p role="status">{messages.deleted}</p>}
           {(deletion === 'storage' || deletion === 'not-found' || deletion === 'unexpected') && (
             <p role="alert">
@@ -249,7 +275,12 @@ export function WeeklyMenusPage() {
                   ))}
                 </ul>
               )}
-              {activeMenu && <MenuSlots key={activeMenu.id} menu={activeMenu} />}
+              {activeMenu && (
+                <>
+                  <MenuSlots key={`slots-${activeMenu.id}`} menu={activeMenu} />
+                  <MenuTransfer key={`transfer-${activeMenu.id}`} menu={activeMenu} />
+                </>
+              )}
             </>
           )}
         </div>

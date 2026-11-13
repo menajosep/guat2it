@@ -3,12 +3,18 @@ import { WeeklyMenuService } from './weekly-menu-service';
 import type { WeeklyMenuStore } from './weekly-menu-store';
 import { MenuAssignmentService } from './menu-assignment-service';
 import type { MenuAssignmentStore } from './menu-assignment-store';
+import { MenuTransferService } from './menu-transfer-service';
 
 const assignmentStore: MenuAssignmentStore = {
   add: vi.fn(),
   list: vi.fn(),
   remove: vi.fn(),
 };
+const transfer = new MenuTransferService(
+  { read: vi.fn(), commit: vi.fn() },
+  () => 'id',
+  () => new Date(),
+);
 
 it('creates separate records for the same date and rejects invalid drafts', async () => {
   const saved: WeeklyMenu[] = [];
@@ -30,6 +36,7 @@ it('creates separate records for the same date and rejects invalid drafts', asyn
     store,
     () => String(++id),
     new MenuAssignmentService(assignmentStore),
+    transfer,
   );
   await service.create({ name: 'First', startDate: '2026-11-16' });
   await service.create({ name: 'Second', startDate: '2026-11-16' });
@@ -54,6 +61,7 @@ it('propagates storage failures', async () => {
     store,
     () => '1',
     new MenuAssignmentService(assignmentStore),
+    transfer,
   );
   await expect(service.list()).rejects.toBe(error);
   await expect(service.create({ name: 'Menu', startDate: '2026-11-16' })).rejects.toBe(error);

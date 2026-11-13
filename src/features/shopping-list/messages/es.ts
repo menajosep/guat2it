@@ -122,6 +122,8 @@ export const es: ShoppingListMessages = {
       'No se pudo eliminar el menú semanal porque falló el almacenamiento local.',
   },
   fallbackError: 'Algo salió mal. Inténtalo de nuevo.',
+  itemChanged:
+    'Este artículo ha cambiado o se ha eliminado. Revisa la lista actual e inténtalo de nuevo.',
   dismissMessage: 'Descartar mensaje',
   clearCompleted: 'Borrar completados',
   clearCompletedDialog: {

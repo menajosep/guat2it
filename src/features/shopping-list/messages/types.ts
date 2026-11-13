@@ -50,6 +50,7 @@ export interface ShoppingListMessages {
   readonly quantityErrors: Readonly<Record<QuantityError, string>>;
   readonly storageFailures: Readonly<Record<PersistenceAction, string>>;
   readonly fallbackError: string;
+  readonly itemChanged: string;
   readonly dismissMessage: string;
   readonly clearCompleted: string;
   readonly clearCompletedDialog: {

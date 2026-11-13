@@ -1,7 +1,7 @@
 import { PersistenceError, type PersistenceAction } from '../../../shared/errors/persistence-error';
 import type { AppDatabase } from '../../../infrastructure/persistence/app-database';
 import type { ShoppingItemStore } from '../application/shopping-item-store';
-import type { ShoppingItem } from '../domain/shopping-item';
+import { sameShoppingItem, type ShoppingItem } from '../domain/shopping-item';
 import { categoryNameKey, type Category } from '../domain/category';
 import { fail, ok, type Result } from '../../../shared/types/result';
 
@@ -60,6 +60,22 @@ export class DexieShoppingItemStore implements ShoppingItemStore {
       this.db.transaction('rw', this.db.shoppingItems, this.db.categories, async () => {
         const ids = item.categoryIds ?? [];
         const categories = await this.db.categories.bulkGet([...ids]);
+        if (categories.some((category) => category === undefined)) return fail('missing-category');
+        await this.db.shoppingItems.put(item);
+        return ok(undefined);
+      }),
+    );
+  }
+
+  saveIfUnchanged(
+    item: ShoppingItem,
+    previous: ShoppingItem,
+  ): Promise<Result<void, 'missing-category' | 'conflict'>> {
+    return guard('save-item', () =>
+      this.db.transaction('rw', this.db.shoppingItems, this.db.categories, async () => {
+        const current = await this.db.shoppingItems.get(item.id);
+        if (!current || !sameShoppingItem(current, previous)) return fail('conflict');
+        const categories = await this.db.categories.bulkGet([...(item.categoryIds ?? [])]);
         if (categories.some((category) => category === undefined)) return fail('missing-category');
         await this.db.shoppingItems.put(item);
         return ok(undefined);
