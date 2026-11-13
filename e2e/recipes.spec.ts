@@ -9,6 +9,85 @@ const pageSource = `<script type="application/ld+json">${JSON.stringify({
   image: 'https://images.example.com/soup.jpg',
 })}</script>`;
 
+test('shows two recipes per row on mobile and desktop and opens a thumbnail', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.route('https://images.example.com/**', (route) =>
+    route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="green"/></svg>',
+    }),
+  );
+  const title = 'A very long recipe title with Supercalifragilisticexpialidocious ingredients';
+  const titles = [title, 'Green salad', 'Roasted vegetables'];
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+  for (const recipeTitle of titles) {
+    const source = `<script type="application/ld+json">${JSON.stringify({
+      '@type': 'Recipe',
+      name: recipeTitle,
+      recipeYield: 4,
+      recipeIngredient: ['200 g lentils'],
+      recipeInstructions: 'Cook gently.',
+      image: 'https://images.example.com/soup.jpg',
+    })}</script>`;
+    await page.getByRole('button', { name: 'Import recipe' }).click();
+    await page.getByLabel('Recipe URL').fill('https://www.directoalpaladar.com/example');
+    await page.getByLabel('Page source').fill(source);
+    await page.getByRole('button', { name: 'Review recipe' }).click();
+    await page.getByRole('button', { name: 'Save recipe' }).click();
+    await expect(page.getByRole('button', { name: recipeTitle })).toBeVisible();
+  }
+
+  const entry = page.getByRole('button', { name: title });
+  const thumbnail = entry.locator('img');
+  await expect(entry).toBeVisible();
+  await expect(thumbnail).toBeVisible();
+  await expect(thumbnail).toHaveJSProperty('naturalWidth', 100);
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 640 });
+    const dimensions = await page.locator('.recipe-list__entry').evaluateAll((elements) => {
+      const entries = elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        const titleRect = element.lastElementChild?.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          titleLeft: titleRect?.left,
+          titleRight: titleRect?.right,
+        };
+      });
+      const content = elements[0]?.closest('ion-content');
+      const scrollElement = content?.shadowRoot?.querySelector<HTMLElement>('.inner-scroll');
+      return {
+        entries,
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        contentOverflow: scrollElement
+          ? scrollElement.scrollWidth > scrollElement.clientWidth
+          : true,
+      };
+    });
+    const [first, second, third] = dimensions.entries;
+    if (!first || !second || !third) throw new Error('Expected three recipe entries');
+    expect(first.top).toBe(second.top);
+    expect(first.right).toBeLessThanOrEqual(second.left);
+    expect(third.top).toBeGreaterThanOrEqual(Math.max(first.bottom, second.bottom));
+    for (const item of dimensions.entries) {
+      expect(item.left).toBeGreaterThanOrEqual(0);
+      expect(item.right).toBeLessThanOrEqual(width);
+      expect(item.titleLeft).toBeGreaterThanOrEqual(item.left);
+      expect(item.titleRight).toBeLessThanOrEqual(item.right);
+    }
+    expect(dimensions.pageOverflow).toBe(false);
+    expect(dimensions.contentOverflow).toBe(false);
+  }
+  await thumbnail.click();
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+});
+
 test('imports, reviews and persists a recipe from pasted page source', async ({ page }) => {
   await page.route('https://images.example.com/**', (route) => route.abort());
   await page.goto('/');

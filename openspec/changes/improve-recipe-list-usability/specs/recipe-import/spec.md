@@ -2,12 +2,17 @@
 
 ### Requirement: Graphical saved recipe list
 
-The system SHALL present each saved recipe in the recipe list with its title and a thumbnail of its saved picture. Each entry MUST provide a single keyboard-operable control identified by the recipe title, and activating its thumbnail or title MUST open that recipe's existing detail view. The list MUST remain usable on narrow screens without horizontal scrolling or obscuring recipe titles.
+The system SHALL present each saved recipe in a two-column recipe list with its title and a thumbnail of its saved picture. Each entry MUST provide a single keyboard-operable control identified by the recipe title, and activating its thumbnail or title MUST open that recipe's existing detail view. The list MUST remain usable on narrow screens without horizontal scrolling or obscuring recipe titles.
 
 #### Scenario: Browse saved recipes
 
 - **WHEN** the saved recipe list contains multiple recipes with loadable pictures
 - **THEN** each recipe appears with its own title and picture thumbnail
+
+#### Scenario: Two recipes per row
+
+- **WHEN** a user views three or more saved recipes on a phone-sized or desktop screen
+- **THEN** two recipes appear side by side in each full row and remaining recipes continue on the next row
 
 #### Scenario: Open a recipe from its thumbnail
 

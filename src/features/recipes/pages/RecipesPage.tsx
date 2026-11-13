@@ -220,11 +220,14 @@ export function RecipesPage() {
                   {recipes.length === 0 ? (
                     <p>{messages.empty}</p>
                   ) : (
-                    <ul>
+                    <ul className="recipe-list">
                       {recipes.map((recipe) => (
                         <li key={recipe.id}>
                           <button
+                            className="recipe-list__entry"
                             type="button"
+                            aria-label={recipe.title}
+                            aria-describedby={`recipe-image-${recipe.id}`}
                             onClick={() => {
                               setSelected(recipe);
                               setDeleteError(null);
@@ -232,7 +235,16 @@ export function RecipesPage() {
                               setView('detail');
                             }}
                           >
-                            {recipe.title}
+                            <span id={`recipe-image-${recipe.id}`}>
+                              <RecipeImage
+                                key={recipe.imageUrl}
+                                url={recipe.imageUrl}
+                                description=""
+                                unavailable={messages.imageUnavailable}
+                                thumbnail
+                              />
+                            </span>
+                            <span>{recipe.title}</span>
                           </button>
                         </li>
                       ))}

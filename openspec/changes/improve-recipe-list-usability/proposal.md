@@ -4,7 +4,7 @@ The saved recipe list currently shows only titles, making recipes harder to reco
 
 ## What Changes
 
-- Show each saved recipe's picture as a thumbnail alongside its title in the recipe list.
+- Show saved recipes in two columns, each with a picture thumbnail and title.
 - Let users open the existing detail view by activating the corresponding recipe entry, including its thumbnail.
 - Keep entries usable when their pictures are unavailable, and preserve the existing empty, loading, error, and recipe-management flows.
 

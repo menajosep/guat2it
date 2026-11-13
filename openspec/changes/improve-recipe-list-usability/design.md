@@ -19,7 +19,7 @@ The recipe page lists saved titles as buttons and opens details in the same page
 
 ### One interactive entry per recipe
 
-Use the existing list and detail-selection flow, presenting the thumbnail and title within one semantic button per recipe. The title identifies the action; image failure information must remain accessible without making the action ambiguous. The thumbnail is not a separate focus target. Style the entries as a responsive graphical list with consistently bounded image areas, without clipping titles or requiring horizontal scrolling on narrow screens.
+Use the existing list and detail-selection flow, presenting the thumbnail and title within one semantic button per recipe. The title identifies the action; image failure information must remain accessible without making the action ambiguous. The thumbnail is not a separate focus target. Style the entries as a responsive two-column graphical list with consistently bounded image areas, without clipping titles or requiring horizontal scrolling on narrow screens.
 
 Separate image and title controls would add duplicate focus stops and make it less clear that both open the same detail view. A title-only link next to a noninteractive image would not satisfy opening details from the thumbnail.
 
