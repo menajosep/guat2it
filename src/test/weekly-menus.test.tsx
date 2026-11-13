@@ -107,6 +107,7 @@ it('creates default and custom menus, allows duplicate dates, and reloads them',
   await user.type(name, 'My custom name');
   fireEvent.change(date, { target: { value: '2026-11-17' } });
   expect(name).toHaveValue('Weekly menu (2026-11-17)');
+  await user.type(screen.getByLabelText('Servings'), '2');
   await user.click(screen.getByRole('button', { name: 'Create weekly menu' }));
   expect(await screen.findByText('Weekly menu created.')).toHaveAttribute('role', 'status');
   expect(
@@ -115,6 +116,7 @@ it('creates default and custom menus, allows duplicate dates, and reloads them',
 
   await user.clear(name);
   await user.type(name, 'Second menu');
+  await user.type(screen.getByLabelText('Servings'), '4');
   await user.click(screen.getByRole('button', { name: 'Create weekly menu' }));
   await waitFor(async () => {
     expect(await menus.list()).toHaveLength(2);
@@ -150,9 +152,14 @@ it('validates fields and keeps draft values when the language changes', async ()
   await user.click(screen.getByRole('button', { name: 'Create weekly menu' }));
   expect(screen.getByText('Choose a valid start date.')).toHaveAttribute('role', 'alert');
   expect(screen.getByText('Enter a menu name.')).toHaveAttribute('role', 'alert');
+  expect(screen.getByText('Enter a positive whole number of servings.')).toHaveAttribute(
+    'role',
+    'alert',
+  );
   expect(await menus.list()).toEqual([]);
   fireEvent.change(date, { target: { value: '2026-11-16' } });
   fireEvent.change(name, { target: { value: 'x'.repeat(101) } });
+  fireEvent.change(screen.getByLabelText('Servings'), { target: { value: '2' } });
   await user.click(screen.getByRole('button', { name: 'Create weekly menu' }));
   expect(screen.getByText('Menu names can have at most 100 characters.')).toHaveAttribute(
     'role',
@@ -161,10 +168,14 @@ it('validates fields and keeps draft values when the language changes', async ()
   expect(await menus.list()).toEqual([]);
   await user.clear(name);
   await user.type(name, 'My plan');
+  await user.clear(screen.getByLabelText('Servings'));
+  await user.type(screen.getByLabelText('Servings'), '3');
   await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
   expect(screen.getByLabelText('Fecha de inicio')).toHaveValue('2026-11-16');
   expect(screen.getByLabelText('Nombre del menú')).toHaveValue('My plan');
+  expect(screen.getByLabelText('Comensales')).toHaveValue(3);
   await user.clear(screen.getByLabelText('Nombre del menú'));
+  await user.clear(screen.getByLabelText('Comensales'));
   await user.click(screen.getByRole('button', { name: 'Crear menú semanal' }));
   expect(screen.getByText('Introduce un nombre para el menú.')).toHaveAttribute('role', 'alert');
   fireEvent.change(screen.getByLabelText('Fecha de inicio'), { target: { value: '2026-11-18' } });
@@ -175,6 +186,44 @@ it('validates fields and keeps draft values when the language changes', async ()
   await user.clear(screen.getByLabelText('Nom del menú'));
   await user.click(screen.getByRole('button', { name: 'Crea un menú setmanal' }));
   expect(screen.getByText('Introdueix un nom per al menú.')).toHaveAttribute('role', 'alert');
+});
+
+it('requires an explicit count for a legacy menu and saves it without losing selection', async () => {
+  const user = userEvent.setup();
+  const database = uniqueDatabase();
+  const db = await seedMenus(database, [
+    { id: 'legacy', name: 'Old week', startDate: '2026-11-18', servings: null },
+  ]);
+  const menus = renderApp(database);
+  vi.spyOn(menus, 'updateServings').mockRejectedValueOnce(new PersistenceError('failed'));
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  await openWeeklyMenus(user);
+  const row = (await screen.findByRole('button', { name: 'Delete menu Old week' })).closest('li');
+  if (!row) throw new Error('Legacy menu not found');
+  await user.click(within(row).getByRole('button', { name: 'Select menu' }));
+  await user.click(screen.getByRole('button', { name: 'Add menu ingredients to shopping list' }));
+  expect(
+    await screen.findByText('Save a serving count before transferring this menu’s ingredients.'),
+  ).toHaveAttribute('role', 'alert');
+  await user.click(
+    within(row).getByRole('button', { name: 'Edit servings for Old week (2026-11-18)' }),
+  );
+  const servings = within(row).getByLabelText('Servings');
+  expect(servings).toHaveValue(null);
+  await user.type(servings, '3');
+  await user.click(within(row).getByRole('button', { name: 'Save servings' }));
+  expect(
+    await screen.findByText(
+      'Could not save menu servings because local storage failed. Please try again.',
+    ),
+  ).toHaveAttribute('role', 'alert');
+  expect(within(row).getByLabelText('Servings')).toHaveValue(3);
+  await user.click(within(row).getByRole('button', { name: 'Save servings' }));
+  expect(await screen.findByText('Menu servings saved.')).toHaveAttribute('role', 'status');
+  expect(await db.weeklyMenus.get('legacy')).toMatchObject({ servings: 3 });
+  await user.click(screen.getByRole('button', { name: 'Add menu ingredients to shopping list' }));
+  expect(await screen.findByRole('group', { name: 'lentils' })).toBeInTheDocument();
+  db.close();
 });
 
 it('reports load failures and retries', async () => {
@@ -216,7 +265,7 @@ it('retains the draft and reports a failed save without claiming success', async
 it('confirms one identical menu by identity and preserves the other menu and recipe', async () => {
   const user = userEvent.setup();
   const database = uniqueDatabase();
-  const firstMenu = { id: 'a', name: 'Family', startDate: '2026-11-18' };
+  const firstMenu = { id: 'a', name: 'Family', startDate: '2026-11-18', servings: 4 };
   const secondMenu = { ...firstMenu, id: 'b' };
   const db = await seedMenus(database, [firstMenu, secondMenu]);
   const menus = renderApp(database);
@@ -256,7 +305,7 @@ it.each(['storage', 'not-found'])(
   async (kind) => {
     const user = userEvent.setup();
     const database = uniqueDatabase();
-    const menu = { id: 'a', name: 'Family', startDate: '2026-11-18' };
+    const menu = { id: 'a', name: 'Family', startDate: '2026-11-18', servings: 4 };
     const db = await seedMenus(database, [menu]);
     const menus = createWeeklyMenuService(database);
     const remove = vi.spyOn(menus, 'remove');
@@ -289,7 +338,7 @@ it('localizes a pending confirmation and displays the saved name as text', async
   const user = userEvent.setup();
   const database = uniqueDatabase();
   const name = '<img src=x onerror=alert(1)> & <b>Menu</b>';
-  const db = await seedMenus(database, [{ id: 'a', name, startDate: '2026-11-18' }]);
+  const db = await seedMenus(database, [{ id: 'a', name, startDate: '2026-11-18', servings: 4 }]);
   renderApp(database);
   await openWeeklyMenus(user);
   const language = await screen.findByRole('combobox', { name: 'Language' });
@@ -316,7 +365,7 @@ it('localizes a pending confirmation and displays the saved name as text', async
 it('keeps a new selection and ignores a stale list load while deletion finishes', async () => {
   const user = userEvent.setup();
   const database = uniqueDatabase();
-  const firstMenu = { id: 'a', name: 'First', startDate: '2026-11-18' };
+  const firstMenu = { id: 'a', name: 'First', startDate: '2026-11-18', servings: 4 };
   const secondMenu = { ...firstMenu, id: 'b', name: 'Second' };
   const db = await seedMenus(database, [firstMenu, secondMenu]);
   const menus = createWeeklyMenuService(database);

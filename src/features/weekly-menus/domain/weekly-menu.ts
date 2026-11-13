@@ -6,16 +6,26 @@ export interface WeeklyMenu {
   readonly id: string;
   readonly name: string;
   readonly startDate: string;
+  readonly servings: number | null;
 }
 
 export interface WeeklyMenuDraft {
   readonly name: string;
   readonly startDate: string;
+  readonly servings: string;
 }
 
 export interface WeeklyMenuErrors {
   readonly name?: 'empty' | 'too-long';
   readonly startDate?: 'invalid';
+  readonly servings?: 'invalid';
+}
+
+export function parseServings(value: string): Result<number, 'invalid'> {
+  const text = value.trim();
+  if (!/^\d+$/.test(text)) return fail('invalid');
+  const servings = Number(text);
+  return Number.isSafeInteger(servings) && servings > 0 ? ok(servings) : fail('invalid');
 }
 
 export function localCalendarDate(date: Date): string {
@@ -45,11 +55,13 @@ export function createWeeklyMenu(
   const nameError =
     name.length === 0 ? 'empty' : name.length > MAX_MENU_NAME_LENGTH ? 'too-long' : undefined;
   const dateValid = isCalendarDate(draft.startDate);
-  if (nameError || !dateValid) {
+  const servings = parseServings(draft.servings);
+  if (nameError || !dateValid || !servings.ok) {
     return fail({
       ...(nameError ? { name: nameError } : {}),
       ...(!dateValid ? { startDate: 'invalid' as const } : {}),
+      ...(!servings.ok ? { servings: 'invalid' as const } : {}),
     });
   }
-  return ok({ id, name, startDate: draft.startDate });
+  return ok({ id, name, startDate: draft.startDate, servings: servings.value });
 }

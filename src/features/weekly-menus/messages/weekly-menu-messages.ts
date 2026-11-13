@@ -3,6 +3,18 @@ import type { Language } from '../../language/domain/language';
 interface WeeklyMenuMessages {
   readonly startDate: string;
   readonly name: string;
+  readonly servings: string;
+  readonly servingsHelp: string;
+  readonly servingsInvalid: string;
+  readonly servingsRequired: string;
+  readonly servingsUnknown: string;
+  readonly servingsValue: (count: number) => string;
+  readonly editServings: (name: string, date: string) => string;
+  readonly saveServings: string;
+  readonly cancelServings: string;
+  readonly servingsSaved: string;
+  readonly servingsMissing: string;
+  readonly servingsStorage: string;
   readonly dateHelp: string;
   readonly create: string;
   readonly empty: string;
@@ -28,6 +40,18 @@ export const weeklyMenuMessages: Record<Language, WeeklyMenuMessages> = {
   en: {
     startDate: 'Start date',
     name: 'Menu name',
+    servings: 'Servings',
+    servingsHelp: 'Enter a positive whole number.',
+    servingsInvalid: 'Enter a positive whole number of servings.',
+    servingsRequired: 'Save a serving count before transferring this menu’s ingredients.',
+    servingsUnknown: 'Serving count needed',
+    servingsValue: (count) => `${String(count)} servings`,
+    editServings: (name, date) => `Edit servings for ${name} (${date})`,
+    saveServings: 'Save servings',
+    cancelServings: 'Cancel',
+    servingsSaved: 'Menu servings saved.',
+    servingsMissing: 'This weekly menu is no longer available.',
+    servingsStorage: 'Could not save menu servings because local storage failed. Please try again.',
     dateHelp: 'Changing the start date resets the menu name.',
     create: 'Create weekly menu',
     empty: 'No weekly menus yet.',
@@ -52,6 +76,19 @@ export const weeklyMenuMessages: Record<Language, WeeklyMenuMessages> = {
   es: {
     startDate: 'Fecha de inicio',
     name: 'Nombre del menú',
+    servings: 'Comensales',
+    servingsHelp: 'Introduce un número entero positivo.',
+    servingsInvalid: 'Introduce un número entero positivo de comensales.',
+    servingsRequired: 'Guarda el número de comensales antes de añadir los ingredientes del menú.',
+    servingsUnknown: 'Falta indicar los comensales',
+    servingsValue: (count) => `${String(count)} comensales`,
+    editServings: (name, date) => `Editar comensales de ${name} (${date})`,
+    saveServings: 'Guardar comensales',
+    cancelServings: 'Cancelar',
+    servingsSaved: 'Comensales del menú guardados.',
+    servingsMissing: 'Este menú semanal ya no está disponible.',
+    servingsStorage:
+      'No se pudieron guardar los comensales por un fallo de almacenamiento. Inténtalo de nuevo.',
     dateHelp: 'Cambiar la fecha de inicio restablece el nombre del menú.',
     create: 'Crear menú semanal',
     empty: 'Todavía no hay menús semanales.',
@@ -76,6 +113,19 @@ export const weeklyMenuMessages: Record<Language, WeeklyMenuMessages> = {
   ca: {
     startDate: "Data d'inici",
     name: 'Nom del menú',
+    servings: 'Comensals',
+    servingsHelp: 'Introdueix un nombre enter positiu.',
+    servingsInvalid: 'Introdueix un nombre enter positiu de comensals.',
+    servingsRequired: 'Desa el nombre de comensals abans d’afegir els ingredients del menú.',
+    servingsUnknown: 'Falta indicar els comensals',
+    servingsValue: (count) => `${String(count)} comensals`,
+    editServings: (name, date) => `Edita els comensals de ${name} (${date})`,
+    saveServings: 'Desa els comensals',
+    cancelServings: 'Cancel·la',
+    servingsSaved: 'S’han desat els comensals del menú.',
+    servingsMissing: 'Aquest menú setmanal ja no està disponible.',
+    servingsStorage:
+      "No s'han pogut desar els comensals per una fallada de l'emmagatzematge. Torna-ho a provar.",
     dateHelp: "Canviar la data d'inici restableix el nom del menú.",
     create: 'Crea un menú setmanal',
     empty: 'Encara no hi ha menús setmanals.',

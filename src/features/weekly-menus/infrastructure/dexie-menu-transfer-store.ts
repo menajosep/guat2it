@@ -29,11 +29,13 @@ async function snapshot(
   const menu = await db.weeklyMenus.get(menuId);
   if (!menu) return fail('menu-not-found');
   const assignments = await db.menuAssignments.where('menuId').equals(menuId).toArray();
+  if (assignments.length > 0 && menu.servings === null) return fail('servings-required');
   const recipes = await db.recipes.bulkGet(assignments.map((entry) => entry.recipeId));
   const resolved: TransferSnapshot['assignments'][number][] = [];
   for (const [index, assignment] of assignments.entries()) {
     const recipe = recipes[index];
     if (!recipe) return fail('recipe-not-found');
+    if (!Number.isFinite(recipe.yield) || recipe.yield <= 0) return fail('invalid-recipe-yield');
     resolved.push({ assignment, recipe });
   }
   return ok({

@@ -31,6 +31,8 @@ export class MenuTransferService {
     snapshot: TransferSnapshot,
     choices: ReadonlyMap<string, TransferChoice>,
   ): Promise<Result<number, TransferError>> {
+    if (snapshot.assignments.length > 0 && snapshot.menu.servings === null)
+      return fail('servings-required');
     const groups = groupTransfer(snapshot);
     const items = [];
     const removeIds: string[] = [];

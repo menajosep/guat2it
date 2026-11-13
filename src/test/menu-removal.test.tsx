@@ -12,8 +12,8 @@ import { AppDatabase } from '../infrastructure/persistence/app-database';
 setupIonicReact();
 
 let counter = 0;
-const menu = { id: 'menu', name: 'Family', startDate: '2026-11-18' };
-const otherMenu = { id: 'other', name: 'Other', startDate: '2026-11-18' };
+const menu = { id: 'menu', name: 'Family', startDate: '2026-11-18', servings: 4 };
+const otherMenu = { id: 'other', name: 'Other', startDate: '2026-11-18', servings: 4 };
 
 function firstButton(buttons: HTMLElement[]): HTMLElement {
   const first = buttons[0];

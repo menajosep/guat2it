@@ -15,7 +15,7 @@ const recipe: Recipe = {
   instructions: 'Cook.',
   imageUrl: 'https://example.com/image.jpg',
 };
-const menu = { id: 'menu', name: 'Week', startDate: '2026-11-18' };
+const menu = { id: 'menu', name: 'Week', startDate: '2026-11-18', servings: 4 };
 const other = { ...menu, id: 'other' };
 
 async function setup() {

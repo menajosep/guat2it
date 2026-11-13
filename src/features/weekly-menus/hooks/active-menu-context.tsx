@@ -20,6 +20,8 @@ type TransferState =
   | 'stale'
   | 'menu-not-found'
   | 'recipe-not-found'
+  | 'servings-required'
+  | 'invalid-recipe-yield'
   | 'invalid'
   | 'storage'
   | 'unexpected';

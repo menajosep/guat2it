@@ -5,6 +5,10 @@ import type { Recipe } from '../../features/recipes/domain/recipe';
 import type { WeeklyMenu } from '../../features/weekly-menus/domain/weekly-menu';
 import type { Meal, MenuAssignment } from '../../features/weekly-menus/domain/menu-assignment';
 
+type MigratingWeeklyMenu = Omit<WeeklyMenu, 'servings'> & {
+  servings?: number | null;
+};
+
 export const DATABASE_NAME = 'guat2it';
 
 export class AppDatabase extends Dexie {
@@ -37,5 +41,15 @@ export class AppDatabase extends Dexie {
     this.version(5).stores({
       menuAssignments: '[menuId+dayOffset+meal+recipeId], menuId, recipeId',
     });
+    this.version(6)
+      .stores({})
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<MigratingWeeklyMenu, string>('weeklyMenus')
+          .toCollection()
+          .modify((menu) => {
+            if (menu.servings === undefined) menu.servings = null;
+          });
+      });
   }
 }

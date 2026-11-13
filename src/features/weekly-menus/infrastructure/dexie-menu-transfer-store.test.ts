@@ -15,7 +15,7 @@ async function setup() {
   const name = `menu-transfer-${String(++counter)}`;
   const db = new AppDatabase(name);
   const other = new AppDatabase(name);
-  await db.weeklyMenus.add({ id: 'm', name: 'Family', startDate: '2026-11-18' });
+  await db.weeklyMenus.add({ id: 'm', name: 'Family', startDate: '2026-11-18', servings: 2 });
   await db.recipes.add({
     id: 'r',
     title: 'Soup',
@@ -92,7 +92,7 @@ it('atomically consolidates active items and preserves recipes, completed items 
   other.close();
 });
 
-it.each(['item', 'assignment', 'recipe', 'category', 'menu'] as const)(
+it.each(['item', 'assignment', 'recipe', 'yield', 'servings', 'category', 'menu'] as const)(
   'rejects a stale review after a concurrent %s change',
   async (change) => {
     const { db, other, service } = await setup();
@@ -103,6 +103,8 @@ it.each(['item', 'assignment', 'recipe', 'category', 'menu'] as const)(
       await other.recipes.update('r', {
         ingredients: [{ name: 'Tomato', amount: 3, unit: 'unit' }],
       });
+    if (change === 'yield') await other.recipes.update('r', { yield: 3 });
+    if (change === 'servings') await other.weeklyMenus.update('m', { servings: 3 });
     if (change === 'category') await other.categories.update('a', { name: 'Changed' });
     if (change === 'menu') await other.weeklyMenus.update('m', { name: 'Changed' });
     const items = await other.shoppingItems.toArray();
@@ -155,8 +157,8 @@ it('allows only one of two concurrent commits of the same review', async () => {
 });
 
 it.each(
-  (['assignment', 'recipe', 'menu', 'item', 'category'] as const).flatMap((kind) =>
-    (['write-first', 'transfer-first'] as const).map((order) => [kind, order] as const),
+  (['assignment', 'recipe', 'yield', 'servings', 'menu', 'item', 'category'] as const).flatMap(
+    (kind) => (['write-first', 'transfer-first'] as const).map((order) => [kind, order] as const),
   ),
 )('serializes a concurrent %s write against transfer (%s)', async (kind, order) => {
   const { db, other, service } = await setup();
@@ -179,6 +181,10 @@ it.each(
           ...recipe,
           ingredients: [{ name: 'Tomato', amount: 3, unit: 'unit' }],
         });
+      case 'yield':
+        return other.recipes.update('r', { yield: 3 });
+      case 'servings':
+        return new DexieWeeklyMenuStore(other).updateServings('m', 3);
       case 'menu':
         return new DexieWeeklyMenuStore(other).remove('m');
       case 'item':
@@ -210,6 +216,31 @@ it('reports missing menus and referenced recipes', async () => {
   expect(await service.review('m')).toEqual({ ok: false, error: 'recipe-not-found' });
   await other.weeklyMenus.delete('m');
   expect(await service.review('m')).toEqual({ ok: false, error: 'menu-not-found' });
+  db.close();
+  other.close();
+});
+
+it('requires servings only for a nonempty menu and rejects invalid recipe yields', async () => {
+  const { db, other, service } = await setup();
+  await other.weeklyMenus.update('m', { servings: null });
+  expect(await service.review('m')).toEqual({ ok: false, error: 'servings-required' });
+  await other.menuAssignments.where('menuId').equals('m').delete();
+  const emptyReview = await service.review('m');
+  expect(emptyReview.ok).toBe(true);
+  if (emptyReview.ok)
+    expect(await service.commit(emptyReview.value, new Map())).toEqual({
+      ok: true,
+      value: 0,
+    });
+  await other.menuAssignments.add({
+    menuId: 'm',
+    recipeId: 'r',
+    dayOffset: 0,
+    meal: 'lunch',
+  });
+  await other.weeklyMenus.update('m', { servings: 2 });
+  await other.recipes.update('r', { yield: 0 });
+  expect(await service.review('m')).toEqual({ ok: false, error: 'invalid-recipe-yield' });
   db.close();
   other.close();
 });

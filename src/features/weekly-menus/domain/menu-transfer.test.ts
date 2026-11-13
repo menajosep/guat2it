@@ -2,6 +2,7 @@ import type { Recipe, RecipeIngredient } from '../../recipes/domain/recipe';
 import type { ShoppingItem } from '../../shopping-list/domain/shopping-item';
 import {
   groupTransfer,
+  formatExactAmount,
   resolveTransferQuantity,
   transferItem,
   transferUnits,
@@ -11,22 +12,27 @@ import {
 
 const date = new Date('2026-01-01T00:00:00Z');
 
-function recipe(ingredients: RecipeIngredient[]): Recipe {
+function recipe(ingredients: RecipeIngredient[], yieldValue = 4): Recipe {
   return {
     id: 'recipe',
     title: 'Soup',
     sourceUrl: 'https://example.com/recipe',
-    yield: 4,
+    yield: yieldValue,
     ingredients,
     instructions: 'Cook.',
     imageUrl: 'https://example.com/image.jpg',
   };
 }
 
-function snapshot(ingredients: RecipeIngredient[], items: ShoppingItem[] = []): TransferSnapshot {
-  const saved = recipe(ingredients);
+function snapshot(
+  ingredients: RecipeIngredient[],
+  items: ShoppingItem[] = [],
+  servings: number | null = 4,
+  yieldValue = 4,
+): TransferSnapshot {
+  const saved = recipe(ingredients, yieldValue);
   return {
-    menu: { id: 'menu', name: 'Family', startDate: '2026-11-18' },
+    menu: { id: 'menu', name: 'Family', startDate: '2026-11-18', servings },
     assignments: [
       {
         assignment: { menuId: 'menu', recipeId: 'recipe', dayOffset: 0, meal: 'lunch' },
@@ -179,6 +185,115 @@ it('sums decimal quantities and converts metric volume exactly', () => {
   expect(resolveTransferQuantity(mixed, { target: 'milliliter' })).toEqual({
     ok: true,
     value: { amount: 1250, unit: 'milliliter' },
+  });
+});
+
+it('scales repeated assignments exactly and defers only unrepresentable totals', () => {
+  const input = snapshot([{ name: 'Tomato', amount: 1, unit: 'unit' }], [], 1, 3);
+  const original = input.assignments[0];
+  if (!original) throw new Error('Expected assignment');
+  const group = firstGroup({
+    ...input,
+    assignments: [
+      original,
+      { ...original, assignment: { ...original.assignment, dayOffset: 1 } },
+      { ...original, assignment: { ...original.assignment, dayOffset: 2 } },
+    ],
+  });
+  expect(
+    group.contributions.map(({ scaledAmount }) =>
+      scaledAmount ? formatExactAmount(scaledAmount) : undefined,
+    ),
+  ).toEqual(['1/3', '1/3', '1/3']);
+  expect(resolveTransferQuantity(group, {})).toEqual({
+    ok: true,
+    value: { amount: 1, unit: 'unit' },
+  });
+
+  const unrepresentable = firstGroup(
+    snapshot([{ name: 'Tomato', amount: 1, unit: 'unit' }], [], 1, 3),
+  );
+  const contribution = unrepresentable.contributions[0];
+  if (!contribution?.scaledAmount) throw new Error('Expected scaled contribution');
+  expect(formatExactAmount(contribution.scaledAmount)).toBe('1/3');
+  expect(resolveTransferQuantity(unrepresentable, {})).toEqual({
+    ok: false,
+    error: 'manual-required',
+  });
+});
+
+it('scales decimal yields and leaves shopping-list contributions unchanged', () => {
+  const fractionalYield = firstGroup(
+    snapshot([{ name: 'Flour', amount: 3, unit: 'kilogram' }], [], 1, 1.5),
+  );
+  expect(resolveTransferQuantity(fractionalYield, {})).toEqual({
+    ok: true,
+    value: { amount: 2, unit: 'kilogram' },
+  });
+
+  const existing = firstGroup(
+    snapshot(
+      [{ name: 'Tomato', amount: 4, unit: 'unit' }],
+      [item('saved', 'Tomato', { amount: 3, unit: 'unit' })],
+      2,
+      4,
+    ),
+  );
+  expect(resolveTransferQuantity(existing, {})).toEqual({
+    ok: true,
+    value: { amount: 5, unit: 'unit' },
+  });
+});
+
+it('scales each assigned recipe by its own yield', () => {
+  const input = snapshot([{ name: 'Flour', amount: 100, unit: 'gram' }], [], 4, 2);
+  const original = input.assignments[0];
+  if (!original) throw new Error('Expected assignment');
+  const second = {
+    ...original,
+    assignment: { ...original.assignment, recipeId: 'other', dayOffset: 1 },
+    recipe: { ...recipe([{ name: 'Flour', amount: 400, unit: 'gram' }], 8), id: 'other' },
+  };
+  const group = firstGroup({ ...input, assignments: [original, second] });
+  expect(
+    group.contributions.map(({ scaledAmount }) =>
+      scaledAmount ? formatExactAmount(scaledAmount) : undefined,
+    ),
+  ).toEqual(['200', '200']);
+  expect(resolveTransferQuantity(group, {})).toEqual({
+    ok: true,
+    value: { amount: 400, unit: 'gram' },
+  });
+});
+
+it('parses exponential decimal notation and scales it without rounding', () => {
+  const group = firstGroup(
+    snapshot([{ name: 'Ingredient', amount: 1e-7, unit: 'gram' }], [], 1, 1e-7),
+  );
+  expect(resolveTransferQuantity(group, {})).toEqual({
+    ok: true,
+    value: { amount: 1, unit: 'gram' },
+  });
+});
+
+it('requires explicit handling for invalid yields, missing servings and sub-cent results', () => {
+  const invalidYield = firstGroup(snapshot([{ name: 'Salt', amount: 1, unit: 'gram' }], [], 1, 0));
+  expect(resolveTransferQuantity(invalidYield, {})).toEqual({
+    ok: false,
+    error: 'invalid-yield',
+  });
+  const legacy = firstGroup(snapshot([{ name: 'Salt', amount: 1, unit: 'gram' }], [], null, 4));
+  expect(resolveTransferQuantity(legacy, {})).toEqual({
+    ok: false,
+    error: 'servings-required',
+  });
+  const tooPrecise = firstGroup(snapshot([{ name: 'Salt', amount: 1, unit: 'gram' }], [], 1, 400));
+  const contribution = tooPrecise.contributions[0];
+  if (!contribution?.scaledAmount) throw new Error('Expected scaled contribution');
+  expect(formatExactAmount(contribution.scaledAmount)).toBe('0.0025');
+  expect(resolveTransferQuantity(tooPrecise, {})).toEqual({
+    ok: false,
+    error: 'manual-required',
   });
 });
 

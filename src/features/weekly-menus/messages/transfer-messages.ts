@@ -5,8 +5,11 @@ interface TransferMessages {
   readonly review: string;
   readonly loading: string;
   readonly empty: string;
-  readonly sourceRecipe: (title: string, day: number, meal: string) => string;
+  readonly sourceRecipe: (title: string, day: number, meal: string, yieldValue: number) => string;
   readonly sourceShopping: string;
+  readonly scaling: (servings: number) => string;
+  readonly scaledContribution: (amount: string) => string;
+  readonly noScaledAmount: string;
   readonly unspecified: string;
   readonly unit: (name: string) => string;
   readonly chooseUnit: string;
@@ -22,6 +25,7 @@ interface TransferMessages {
   readonly stale: string;
   readonly menuMissing: string;
   readonly recipeMissing: string;
+  readonly invalidRecipeYield: string;
   readonly invalid: string;
   readonly storage: string;
   readonly unexpected: string;
@@ -34,8 +38,12 @@ export const transferMessages: Record<Language, TransferMessages> = {
     review: 'Review menu ingredients',
     loading: 'Loading ingredients',
     empty: 'This menu has no ingredients to transfer.',
-    sourceRecipe: (title, day, meal) => `${title} — day ${String(day)} — ${meal}`,
+    sourceRecipe: (title, day, meal, yieldValue) =>
+      `${title} (yield: ${String(yieldValue)}) — day ${String(day)} — ${meal}`,
     sourceShopping: 'Shopping list',
+    scaling: (servings) => `Scaling for ${String(servings)} servings.`,
+    scaledContribution: (amount) => `Scaled contribution: ${amount}`,
+    noScaledAmount: 'No numeric amount to scale.',
     unspecified: 'No quantity',
     unit: (name) => `Final unit for ${name}`,
     chooseUnit: 'Choose a unit',
@@ -51,6 +59,7 @@ export const transferMessages: Record<Language, TransferMessages> = {
     stale: 'The menu or shopping list changed. Review the current ingredients again.',
     menuMissing: 'This weekly menu is no longer available.',
     recipeMissing: 'A recipe in this menu is no longer available.',
+    invalidRecipeYield: 'A recipe has an invalid yield. Correct or remove it before transferring.',
     invalid: 'Review the quantities before adding ingredients.',
     storage: 'Could not add ingredients because local storage failed. Please try again.',
     unexpected: 'Could not add ingredients. Please try again.',
@@ -61,8 +70,12 @@ export const transferMessages: Record<Language, TransferMessages> = {
     review: 'Revisar ingredientes del menú',
     loading: 'Cargando ingredientes',
     empty: 'Este menú no tiene ingredientes para añadir.',
-    sourceRecipe: (title, day, meal) => `${title} — día ${String(day)} — ${meal}`,
+    sourceRecipe: (title, day, meal, yieldValue) =>
+      `${title} (raciones: ${String(yieldValue)}) — día ${String(day)} — ${meal}`,
     sourceShopping: 'Lista de compra',
+    scaling: (servings) => `Escalado para ${String(servings)} comensales.`,
+    scaledContribution: (amount) => `Aportación escalada: ${amount}`,
+    noScaledAmount: 'No hay una cantidad numérica que escalar.',
     unspecified: 'Sin cantidad',
     unit: (name) => `Unidad final para ${name}`,
     chooseUnit: 'Elige una unidad',
@@ -79,6 +92,8 @@ export const transferMessages: Record<Language, TransferMessages> = {
     stale: 'El menú o la lista de compra ha cambiado. Revisa de nuevo los ingredientes actuales.',
     menuMissing: 'Este menú semanal ya no está disponible.',
     recipeMissing: 'Una receta de este menú ya no está disponible.',
+    invalidRecipeYield:
+      'Una receta tiene unas raciones no válidas. Corrígela o elimínala antes de añadirla.',
     invalid: 'Revisa las cantidades antes de añadir los ingredientes.',
     storage:
       'No se pudieron añadir los ingredientes por un fallo del almacenamiento local. Inténtalo de nuevo.',
@@ -90,8 +105,12 @@ export const transferMessages: Record<Language, TransferMessages> = {
     review: 'Revisa els ingredients del menú',
     loading: 'Carregant ingredients',
     empty: 'Aquest menú no té ingredients per afegir.',
-    sourceRecipe: (title, day, meal) => `${title} — dia ${String(day)} — ${meal}`,
+    sourceRecipe: (title, day, meal, yieldValue) =>
+      `${title} (racions: ${String(yieldValue)}) — dia ${String(day)} — ${meal}`,
     sourceShopping: 'Llista de la compra',
+    scaling: (servings) => `Escalat per a ${String(servings)} comensals.`,
+    scaledContribution: (amount) => `Aportació escalada: ${amount}`,
+    noScaledAmount: 'No hi ha una quantitat numèrica per escalar.',
     unspecified: 'Sense quantitat',
     unit: (name) => `Unitat final per a ${name}`,
     chooseUnit: 'Tria una unitat',
@@ -108,6 +127,8 @@ export const transferMessages: Record<Language, TransferMessages> = {
     stale: 'El menú o la llista de la compra ha canviat. Revisa de nou els ingredients actuals.',
     menuMissing: 'Aquest menú setmanal ja no està disponible.',
     recipeMissing: "Una recepta d'aquest menú ja no està disponible.",
+    invalidRecipeYield:
+      "Una recepta té unes racions no vàlides. Corregeix-la o elimina-la abans d'afegir-la.",
     invalid: "Revisa les quantitats abans d'afegir els ingredients.",
     storage:
       "No s'han pogut afegir els ingredients per una fallada de l'emmagatzematge local. Torna-ho a provar.",
