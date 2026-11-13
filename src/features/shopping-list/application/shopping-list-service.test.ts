@@ -1,6 +1,6 @@
 import { PersistenceError } from '../../../shared/errors/persistence-error';
 import type { QuantityDraft } from '../domain/quantity';
-import type { ShoppingItem } from '../domain/shopping-item';
+import { sameShoppingItem, type ShoppingItem } from '../domain/shopping-item';
 import type { ShoppingItemStore } from './shopping-item-store';
 import { ShoppingListService } from './shopping-list-service';
 import { categoryNameKey, type Category } from '../domain/category';
@@ -40,6 +40,15 @@ class InMemoryStore implements ShoppingItemStore {
     }
     this.items.set(item.id, item);
     return Promise.resolve(ok(undefined));
+  }
+  saveIfUnchanged(
+    item: ShoppingItem,
+    previous: ShoppingItem,
+  ): Promise<Result<void, 'missing-category' | 'conflict'>> {
+    this.check();
+    const current = this.items.get(item.id);
+    if (!current || !sameShoppingItem(current, previous)) return Promise.resolve(fail('conflict'));
+    return this.save(item);
   }
   remove(id: string): Promise<void> {
     this.check();

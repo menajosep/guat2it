@@ -12,7 +12,9 @@ Use **Weekly menus** in the toolbar menu to create a named local menu with a cho
 
 To delete a weekly menu, select its delete control and confirm. Its assignments are removed together with the menu; saved recipes, other menus and their assignments remain. Canceling leaves everything unchanged. Deleting the selected menu clears the selection.
 
-Not implemented (yet): shopping lists generated from recipes, sync, accounts.
+To add a menu's ingredients to the shopping list, select the menu and choose **Add menu ingredients to shopping list**. Review the contributions and confirm: each recipe assignment is counted, and matching active items are combined by name while completed items remain unchanged. Choose a final unit when units differ. The app converts compatible mass and metric volume units exactly; when quantities are missing, vague, incompatible or cannot be represented exactly, enter and confirm the final quantity yourself. Existing categories are preserved. Repeating the transfer adds the ingredients again.
+
+Not implemented (yet): synchronization and accounts.
 
 > **Data is local to each installation and is not synchronized** between Android, iOS and the web. It is stored in IndexedDB (via Dexie) inside the browser or app WebView. Clearing site data or uninstalling the app deletes it, and mobile WebViews may evict it under storage pressure. See [docs/architecture.md](docs/architecture.md#persistence-limits).
 

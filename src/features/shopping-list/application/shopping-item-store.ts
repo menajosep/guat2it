@@ -8,6 +8,10 @@ export interface ShoppingItemStore {
   getAll(): Promise<ShoppingItem[]>;
   get(id: string): Promise<ShoppingItem | undefined>;
   save(item: ShoppingItem): Promise<Result<void, 'missing-category'>>;
+  saveIfUnchanged(
+    item: ShoppingItem,
+    previous: ShoppingItem,
+  ): Promise<Result<void, 'missing-category' | 'conflict'>>;
   remove(id: string): Promise<void>;
   /** Removes all the given items or none of them. */
   removeMany(ids: readonly string[]): Promise<void>;

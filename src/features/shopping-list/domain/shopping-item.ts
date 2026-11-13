@@ -28,6 +28,22 @@ export interface ItemErrors {
   readonly name?: ItemNameError;
   readonly quantity?: QuantityError;
   readonly categories?: 'missing-category';
+  readonly conflict?: true;
+}
+
+export function sameShoppingItem(a: ShoppingItem, b: ShoppingItem): boolean {
+  const categoriesA = a.categoryIds ?? [];
+  const categoriesB = b.categoryIds ?? [];
+  return (
+    a.id === b.id &&
+    a.name === b.name &&
+    a.completed === b.completed &&
+    a.createdAt.getTime() === b.createdAt.getTime() &&
+    a.amount === b.amount &&
+    a.unit === b.unit &&
+    categoriesA.length === categoriesB.length &&
+    categoriesA.every((id, index) => id === categoriesB[index])
+  );
 }
 
 /** Trims the name and checks it is non-empty and within the length limit. */

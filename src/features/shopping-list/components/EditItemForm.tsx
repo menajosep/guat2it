@@ -15,6 +15,7 @@ interface EditItemFormProps {
     name: string,
     quantity: QuantityDraft,
     categoryIds: readonly string[],
+    expected?: ShoppingItem,
   ) => Promise<UpdateOutcome>;
   onClose: () => void;
   categories: readonly Category[];
@@ -22,6 +23,7 @@ interface EditItemFormProps {
 
 export function EditItemForm({ item, onUpdate, onClose, categories }: EditItemFormProps) {
   const messages = useShoppingListMessages();
+  const [original] = useState(item);
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState<QuantityDraft>({
     amount: amountToText(item),
@@ -53,7 +55,7 @@ export function EditItemForm({ item, onUpdate, onClose, categories }: EditItemFo
   async function handleSubmit(event: React.SyntheticEvent) {
     event.preventDefault();
     setSaving(true);
-    const outcome = await onUpdate(item.id, name, quantity, categoryIds);
+    const outcome = await onUpdate(item.id, name, quantity, categoryIds, original);
     setSaving(false);
     if (outcome.status === 'invalid') {
       setErrors(outcome.errors);

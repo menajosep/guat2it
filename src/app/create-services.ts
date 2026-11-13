@@ -10,6 +10,8 @@ import { WeeklyMenuService } from '../features/weekly-menus/application/weekly-m
 import { DexieWeeklyMenuStore } from '../features/weekly-menus/infrastructure/dexie-weekly-menu-store';
 import { MenuAssignmentService } from '../features/weekly-menus/application/menu-assignment-service';
 import { DexieMenuAssignmentStore } from '../features/weekly-menus/infrastructure/dexie-menu-assignment-store';
+import { MenuTransferService } from '../features/weekly-menus/application/menu-transfer-service';
+import { DexieMenuTransferStore } from '../features/weekly-menus/infrastructure/dexie-menu-transfer-store';
 import { AppDatabase, DATABASE_NAME } from '../infrastructure/persistence/app-database';
 import { generateId } from '../shared/utils/generate-id';
 
@@ -34,6 +36,7 @@ export function createWeeklyMenuService(databaseName: string = DATABASE_NAME): W
     new DexieWeeklyMenuStore(database),
     generateId,
     new MenuAssignmentService(new DexieMenuAssignmentStore(database)),
+    new MenuTransferService(new DexieMenuTransferStore(database), generateId, () => new Date()),
   );
 }
 
