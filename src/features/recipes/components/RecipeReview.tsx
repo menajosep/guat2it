@@ -1,6 +1,12 @@
 import { QuantityFields } from '../../shopping-list/components/QuantityFields';
 import { useShoppingListMessages } from '../../shopping-list/hooks/use-shopping-list-messages';
-import type { IngredientDraft, RecipeDraft, RecipeErrors } from '../domain/recipe';
+import {
+  isRecipeCategory,
+  RECIPE_CATEGORIES,
+  type IngredientDraft,
+  type RecipeDraft,
+  type RecipeErrors,
+} from '../domain/recipe';
 import type { RecipeMessages } from '../messages/recipe-messages';
 import { RecipeImage } from './RecipeImage';
 
@@ -53,6 +59,27 @@ export function RecipeReview({
         }}
       />
       {errors?.title && <p role="alert">{messages.required}</p>}
+
+      <label htmlFor="recipe-category">{messages.category}</label>
+      <select
+        id="recipe-category"
+        value={draft.category ?? ''}
+        onChange={(event) => {
+          const category = event.target.value;
+          onChange({
+            ...draft,
+            category: isRecipeCategory(category) ? category : undefined,
+          });
+        }}
+      >
+        <option value="">{messages.uncategorized}</option>
+        {RECIPE_CATEGORIES.map((category) => (
+          <option key={category} value={category}>
+            {messages.categories[category]}
+          </option>
+        ))}
+      </select>
+      {errors?.category && <p role="alert">{messages.invalidCategory}</p>}
 
       <label htmlFor="recipe-yield">{messages.yield}</label>
       <input

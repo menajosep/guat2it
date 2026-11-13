@@ -190,3 +190,86 @@ test('cancels recipe edits and persists saved changes after reload', async ({ pa
   await expect(page.getByText('red lentils — 200 grams')).toBeVisible();
   await expect(page.getByText('Simmer slowly.')).toBeVisible();
 });
+
+test('categorizes, filters, edits, and reloads recipes including uncategorized recipes', async ({
+  page,
+}) => {
+  await page.route('https://images.example.com/**', (route) => route.abort());
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+
+  const importRecipe = async (title: string, ingredient: string, category?: string) => {
+    const source = `<script type="application/ld+json">${JSON.stringify({
+      '@type': 'Recipe',
+      name: title,
+      recipeYield: 2,
+      recipeIngredient: [ingredient],
+      recipeInstructions: 'Cook gently.',
+      image: 'https://images.example.com/soup.jpg',
+    })}</script>`;
+    await page.getByRole('button', { name: 'Import recipe' }).click();
+    await page.getByLabel('Recipe URL').fill('https://www.directoalpaladar.com/example');
+    await page.getByLabel('Page source').fill(source);
+    await page.getByRole('button', { name: 'Review recipe' }).click();
+    if (category) await page.getByLabel('Category').selectOption({ label: category });
+    await page.getByRole('button', { name: 'Save recipe' }).click();
+    await expect(page.getByRole('button', { name: title })).toBeVisible();
+  };
+
+  await importRecipe('Lentil soup', '200 g lentils', 'Desserts');
+  await importRecipe('Green salad', '100 g lettuce');
+
+  const filter = page.getByLabel('Filter recipes by category');
+  await expect(filter).toHaveValue('all');
+  await page.setViewportSize({ width: 320, height: 640 });
+  const narrowLayout = await page.locator('.recipe-category-filter').evaluate((element) => {
+    const label = element.querySelector('label');
+    const select = element.querySelector('select');
+    if (!label || !select) throw new Error('Recipe category filter controls are missing');
+    return {
+      labelBottom: label.getBoundingClientRect().bottom,
+      selectTop: select.getBoundingClientRect().top,
+      selectWidth: select.getBoundingClientRect().width,
+      panelRight: element.getBoundingClientRect().right,
+    };
+  });
+  expect(narrowLayout.selectTop).toBeGreaterThanOrEqual(narrowLayout.labelBottom);
+  expect(narrowLayout.selectWidth).toBeGreaterThan(200);
+  expect(narrowLayout.panelRight).toBeLessThanOrEqual(320);
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const wideLayout = await page.locator('.recipe-category-filter').evaluate((element) => {
+    const label = element.querySelector('label');
+    const select = element.querySelector('select');
+    if (!label || !select) throw new Error('Recipe category filter controls are missing');
+    return {
+      labelLeft: label.getBoundingClientRect().left,
+      selectLeft: select.getBoundingClientRect().left,
+    };
+  });
+  expect(wideLayout.selectLeft).toBeGreaterThan(wideLayout.labelLeft);
+
+  await filter.selectOption('desserts');
+  await expect(page.getByRole('button', { name: 'Lentil soup' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Green salad' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Lentil soup' }).click();
+  await expect(page.getByText('Category: Desserts')).toBeVisible();
+  await page.getByRole('button', { name: 'Edit recipe' }).click();
+  await page.getByLabel('Category').selectOption('soups-stews');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Category: Soups & Stews')).toBeVisible();
+  await page.getByRole('button', { name: 'Back to recipes' }).click();
+  await expect(page.getByText('No recipes match this category.')).toBeVisible();
+  await filter.selectOption('soups-stews');
+  await expect(page.getByRole('button', { name: 'Lentil soup' })).toBeVisible();
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+  await page.getByRole('button', { name: 'Lentil soup' }).click();
+  await expect(page.getByText('Category: Soups & Stews')).toBeVisible();
+  await page.getByRole('button', { name: 'Back to recipes' }).click();
+  await page.getByLabel('Filter recipes by category').selectOption('uncategorized');
+  await expect(page.getByRole('button', { name: 'Green salad' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Lentil soup' })).toHaveCount(0);
+});

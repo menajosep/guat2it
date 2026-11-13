@@ -27,7 +27,7 @@ Add the optional category to recipe drafts and saved recipes, preserving it thro
 
 ### Filter the already loaded list
 
-Use an accessible single-select filter on the recipes page with all, each category, and uncategorized choices. Filter the loaded recipe list without changing storage or ordering. Default to all when the page is initialized, retain the current filter when navigating to a recipe and back or reloading the list after an operation, and show a distinct no-matches message when a filter excludes all recipes. Keep the existing empty-library, loading, and error states distinct. This avoids a new storage query or index for a small local collection.
+Use an accessible single-select filter on the recipes page with all, each category, and uncategorized choices. Present the label and native select together in a visually distinct responsive panel: align them horizontally when space allows and stack them on narrow screens, with a full-width, touch-friendly control. Keep the native select for familiar keyboard and assistive-technology behavior instead of replacing it with a custom chip system. Filter the loaded recipe list without changing storage or ordering. Default to all when the page is initialized, retain the current filter when navigating to a recipe and back or reloading the list after an operation, and show a distinct no-matches message when a filter excludes all recipes. Keep the existing empty-library, loading, and error states distinct. This avoids a new storage query or index for a small local collection.
 
 ### Reuse existing review and detail flows
 

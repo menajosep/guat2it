@@ -1,4 +1,5 @@
 import type { Language } from '../../language/domain/language';
+import type { RecipeCategory } from '../domain/recipe';
 
 export interface RecipeMessages {
   readonly empty: string;
@@ -24,6 +25,13 @@ export interface RecipeMessages {
   readonly deleteUnexpected: string;
   readonly deleteInUse: string;
   readonly title: string;
+  readonly category: string;
+  readonly categoryFilter: string;
+  readonly allRecipes: string;
+  readonly uncategorized: string;
+  readonly noMatches: string;
+  readonly invalidCategory: string;
+  readonly categories: Record<RecipeCategory, string>;
   readonly yield: string;
   readonly ingredients: string;
   readonly addIngredient: string;
@@ -83,6 +91,24 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteUnexpected: 'Could not delete the recipe. Please try again.',
     deleteInUse: 'Remove this recipe from all weekly menus before deleting it.',
     title: 'Title',
+    category: 'Category',
+    categoryFilter: 'Filter recipes by category',
+    allRecipes: 'All recipes',
+    uncategorized: 'Uncategorized',
+    noMatches: 'No recipes match this category.',
+    invalidCategory: 'Choose a supported recipe category.',
+    categories: {
+      'breakfast-brunch': 'Breakfast & Brunch',
+      'appetizers-snacks': 'Appetizers & Snacks',
+      'soups-stews': 'Soups & Stews',
+      salads: 'Salads',
+      'main-courses': 'Main Courses',
+      'side-dishes': 'Side Dishes',
+      'breads-baked-goods': 'Breads & Baked Goods',
+      desserts: 'Desserts',
+      'sauces-condiments': 'Sauces & Condiments',
+      beverages: 'Beverages',
+    },
     yield: 'Yield',
     ingredients: 'Ingredients',
     addIngredient: 'Add ingredient',
@@ -141,6 +167,24 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteUnexpected: 'No se pudo eliminar la receta. Inténtalo de nuevo.',
     deleteInUse: 'Quita esta receta de todos los menús semanales antes de eliminarla.',
     title: 'Título',
+    category: 'Categoría',
+    categoryFilter: 'Filtrar recetas por categoría',
+    allRecipes: 'Todas las recetas',
+    uncategorized: 'Sin categoría',
+    noMatches: 'No hay recetas en esta categoría.',
+    invalidCategory: 'Elige una categoría de receta válida.',
+    categories: {
+      'breakfast-brunch': 'Desayunos y brunch',
+      'appetizers-snacks': 'Aperitivos y tentempiés',
+      'soups-stews': 'Sopas y guisos',
+      salads: 'Ensaladas',
+      'main-courses': 'Platos principales',
+      'side-dishes': 'Guarniciones',
+      'breads-baked-goods': 'Panes y productos horneados',
+      desserts: 'Postres',
+      'sauces-condiments': 'Salsas y condimentos',
+      beverages: 'Bebidas',
+    },
     yield: 'Raciones',
     ingredients: 'Ingredientes',
     addIngredient: 'Añadir ingrediente',
@@ -200,6 +244,24 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     deleteUnexpected: "No s'ha pogut suprimir la recepta. Torna-ho a provar.",
     deleteInUse: 'Treu aquesta recepta de tots els menús setmanals abans de suprimir-la.',
     title: 'Títol',
+    category: 'Categoria',
+    categoryFilter: 'Filtra les receptes per categoria',
+    allRecipes: 'Totes les receptes',
+    uncategorized: 'Sense categoria',
+    noMatches: 'No hi ha receptes en aquesta categoria.',
+    invalidCategory: 'Tria una categoria de recepta vàlida.',
+    categories: {
+      'breakfast-brunch': 'Esmorzars i brunch',
+      'appetizers-snacks': 'Aperitius i refrigeris',
+      'soups-stews': 'Sopes i guisats',
+      salads: 'Amanides',
+      'main-courses': 'Plats principals',
+      'side-dishes': 'Guarnicions',
+      'breads-baked-goods': 'Pans i productes al forn',
+      desserts: 'Postres',
+      'sauces-condiments': 'Salses i condiments',
+      beverages: 'Begudes',
+    },
     yield: 'Racions',
     ingredients: 'Ingredients',
     addIngredient: 'Afegeix un ingredient',

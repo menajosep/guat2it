@@ -52,6 +52,32 @@
   height: auto;
 }
 
+.recipes .recipe-category-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 1.5fr);
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 0.75rem;
+  background: var(--ion-background-color);
+}
+
+.recipes .recipe-category-filter label {
+  font-weight: 600;
+}
+
+.recipes .recipe-category-filter select {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 0.5rem;
+  color: var(--ion-text-color);
+  background: var(--ion-background-color);
+}
+
 .recipes .recipe-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -91,6 +117,14 @@
   box-sizing: border-box;
   text-align: center;
   background: var(--ion-color-medium);
+}
+
+@media (max-width: 480px) {
+  .recipes .recipe-category-filter {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
 }
 
 .recipes [role='alert'],

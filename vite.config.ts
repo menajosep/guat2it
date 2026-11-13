@@ -20,5 +20,6 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     alias: { '@lit/react': litReactBrowserBuild },
     server: { deps: { inline: [/@stencil\/react-output-target/] } },
+    maxWorkers: 1,
   },
 });

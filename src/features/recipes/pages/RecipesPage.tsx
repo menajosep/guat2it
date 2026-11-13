@@ -9,7 +9,15 @@ import { formatQuantity } from '../../shopping-list/messages/format-quantity';
 import type { ImportError } from '../application/recipe-service';
 import { RecipeImage } from '../components/RecipeImage';
 import { RecipeReview } from '../components/RecipeReview';
-import { recipeToDraft, type Recipe, type RecipeDraft, type RecipeErrors } from '../domain/recipe';
+import {
+  isRecipeCategory,
+  RECIPE_CATEGORIES,
+  recipeToDraft,
+  type Recipe,
+  type RecipeCategory,
+  type RecipeDraft,
+  type RecipeErrors,
+} from '../domain/recipe';
 import { useRecipeService } from '../hooks/recipe-service-context';
 import { recipeMessages } from '../messages/recipe-messages';
 import { AssignRecipe } from '../../weekly-menus/components/AssignRecipe';
@@ -17,6 +25,7 @@ import { useActiveMenu } from '../../weekly-menus/hooks/active-menu-context';
 
 type View = 'list' | 'import' | 'review' | 'edit' | 'detail';
 type Status = 'loading' | 'ready' | 'error';
+type RecipeFilter = 'all' | 'uncategorized' | RecipeCategory;
 
 export function RecipesPage() {
   const service = useRecipeService();
@@ -27,6 +36,7 @@ export function RecipesPage() {
   const [view, setView] = useState<View>('list');
   const [status, setStatus] = useState<Status>('loading');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipeFilter, setRecipeFilter] = useState<RecipeFilter>('all');
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [sourceUrl, setSourceUrl] = useState('');
   const [source, setSource] = useState('');
@@ -187,6 +197,12 @@ export function RecipesPage() {
     encoding: messages.encodingError,
     unexpected: messages.importUnexpected,
   };
+  const visibleRecipes =
+    recipeFilter === 'all'
+      ? recipes
+      : recipeFilter === 'uncategorized'
+        ? recipes.filter((recipe) => recipe.category === undefined)
+        : recipes.filter((recipe) => recipe.category === recipeFilter);
 
   return (
     <IonPage>
@@ -220,35 +236,65 @@ export function RecipesPage() {
                   {recipes.length === 0 ? (
                     <p>{messages.empty}</p>
                   ) : (
-                    <ul className="recipe-list">
-                      {recipes.map((recipe) => (
-                        <li key={recipe.id}>
-                          <button
-                            className="recipe-list__entry"
-                            type="button"
-                            aria-label={recipe.title}
-                            aria-describedby={`recipe-image-${recipe.id}`}
-                            onClick={() => {
-                              setSelected(recipe);
-                              setDeleteError(null);
-                              setUpdateError(null);
-                              setView('detail');
-                            }}
-                          >
-                            <span id={`recipe-image-${recipe.id}`}>
-                              <RecipeImage
-                                key={recipe.imageUrl}
-                                url={recipe.imageUrl}
-                                description=""
-                                unavailable={messages.imageUnavailable}
-                                thumbnail
-                              />
-                            </span>
-                            <span>{recipe.title}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <div className="recipe-category-filter">
+                        <label htmlFor="recipe-category-filter">{messages.categoryFilter}</label>
+                        <select
+                          id="recipe-category-filter"
+                          value={recipeFilter}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            if (
+                              value === 'all' ||
+                              value === 'uncategorized' ||
+                              isRecipeCategory(value)
+                            )
+                              setRecipeFilter(value);
+                          }}
+                        >
+                          <option value="all">{messages.allRecipes}</option>
+                          {RECIPE_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                              {messages.categories[category]}
+                            </option>
+                          ))}
+                          <option value="uncategorized">{messages.uncategorized}</option>
+                        </select>
+                      </div>
+                      {visibleRecipes.length === 0 ? (
+                        <p>{messages.noMatches}</p>
+                      ) : (
+                        <ul className="recipe-list">
+                          {visibleRecipes.map((recipe) => (
+                            <li key={recipe.id}>
+                              <button
+                                className="recipe-list__entry"
+                                type="button"
+                                aria-label={recipe.title}
+                                aria-describedby={`recipe-image-${recipe.id}`}
+                                onClick={() => {
+                                  setSelected(recipe);
+                                  setDeleteError(null);
+                                  setUpdateError(null);
+                                  setView('detail');
+                                }}
+                              >
+                                <span id={`recipe-image-${recipe.id}`}>
+                                  <RecipeImage
+                                    key={recipe.imageUrl}
+                                    url={recipe.imageUrl}
+                                    description=""
+                                    unavailable={messages.imageUnavailable}
+                                    thumbnail
+                                  />
+                                </span>
+                                <span>{recipe.title}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -314,6 +360,12 @@ export function RecipesPage() {
               />
               <p>
                 {messages.yield}: {selected.yield}
+              </p>
+              <p>
+                {messages.category}:{' '}
+                {selected.category
+                  ? messages.categories[selected.category]
+                  : messages.uncategorized}
               </p>
               <h2>{messages.ingredients}</h2>
               <ul>

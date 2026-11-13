@@ -138,6 +138,30 @@ describe('RecipeService', () => {
     expect(save).toHaveBeenCalledOnce();
   });
 
+  it('saves and updates the optional recipe category', async () => {
+    const { service: instance, store } = service();
+    const imported = instance.import(sourceUrl, 'source');
+    if (!imported.ok) throw new Error('Expected a draft');
+    const saved = await instance.save({ ...imported.value, category: 'desserts' });
+    expect(saved).toMatchObject({ ok: true, value: { category: 'desserts' } });
+
+    vi.spyOn(store, 'get').mockResolvedValue({
+      id: 'id',
+      sourceUrl,
+      title: 'Soup',
+      category: 'desserts',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }],
+      instructions: 'Cook',
+      imageUrl: 'https://example.com/image.jpg',
+    });
+    const update = await instance.update('id', {
+      ...imported.value,
+      category: 'soups-stews',
+    });
+    expect(update).toMatchObject({ ok: true, value: { category: 'soups-stews' } });
+  });
+
   it('updates validated recipes while preserving their id and stored source URL', async () => {
     const existing = {
       id: 'recipe-id',

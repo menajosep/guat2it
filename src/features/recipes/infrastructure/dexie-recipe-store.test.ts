@@ -46,6 +46,35 @@ describe('DexieRecipeStore', () => {
     reopened.close();
   });
 
+  it('reads legacy recipes and menu assignments without rewriting existing records', async () => {
+    const name = uniqueName();
+    const old = new Dexie(name);
+    old.version(5).stores({
+      shoppingItems: 'id, createdAt',
+      categories: 'id',
+      recipes: 'id',
+      weeklyMenus: 'id, startDate',
+      menuAssignments: '[menuId+dayOffset+meal+recipeId], menuId, recipeId',
+    });
+    const legacyRecipe = { ...recipe };
+    const assignment = {
+      menuId: 'menu-1',
+      recipeId: recipe.id,
+      dayOffset: 0,
+      meal: 'dinner',
+    };
+    await old.table('recipes').add(legacyRecipe);
+    await old.table('menuAssignments').add(assignment);
+    old.close();
+
+    const db = new AppDatabase(name);
+    const store = new DexieRecipeStore(db);
+    expect(await store.get(recipe.id)).toEqual(legacyRecipe);
+    expect(await store.list()).toEqual([legacyRecipe]);
+    expect(await db.menuAssignments.toArray()).toEqual([assignment]);
+    db.close();
+  });
+
   it('rejects duplicate ids without changing the saved recipe', async () => {
     const db = new AppDatabase(uniqueName());
     const store = new DexieRecipeStore(db);
@@ -79,6 +108,23 @@ describe('DexieRecipeStore', () => {
     await expect(store.update(updated)).resolves.toBe(true);
     await expect(store.get(recipe.id)).resolves.toEqual(updated);
     db.close();
+  });
+
+  it('persists recipe categories through save, update, list, and reopening', async () => {
+    const name = uniqueName();
+    const db = new AppDatabase(name);
+    const store = new DexieRecipeStore(db);
+    const categorized: Recipe = { ...recipe, category: 'desserts' };
+    await store.save(categorized);
+    expect(await store.get(recipe.id)).toEqual(categorized);
+    expect(await store.list()).toEqual([categorized]);
+    const updated: Recipe = { ...categorized, category: 'soups-stews' };
+    await store.update(updated);
+    db.close();
+
+    const reopened = new AppDatabase(name);
+    expect(await new DexieRecipeStore(reopened).get(recipe.id)).toEqual(updated);
+    reopened.close();
   });
 
   it('wraps load, save, and update failures with their original cause', async () => {

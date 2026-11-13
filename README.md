@@ -32,6 +32,8 @@ Recipes are stored locally and shown two per row as picture thumbnails with thei
 
 To edit a saved recipe, open it from the recipe list and select **Edit recipe**. Changes are validated before saving; canceling leaves the saved recipe unchanged.
 
+Recipes can optionally be assigned one course category while reviewing an import or editing a saved recipe. Use the category filter to browse all recipes, one course, or uncategorized recipes. Recipes saved before categories were added remain available as uncategorized until edited; category choices are stored locally with each recipe.
+
 ## Prerequisites
 
 - Node.js 22.12 or newer (Capacitor 8 requires Node 22+) and npm

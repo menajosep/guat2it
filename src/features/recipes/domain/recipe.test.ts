@@ -1,5 +1,7 @@
 import {
   recipeToDraft,
+  isRecipeCategory,
+  RECIPE_CATEGORIES,
   validateIngredient,
   validateRecipe,
   type Recipe,
@@ -69,6 +71,31 @@ describe('recipe validation', () => {
         instructions: 'Cook.',
         imageUrl: draft.imageUrl,
       },
+    });
+  });
+
+  it('accepts each supported category and retains it when editing', () => {
+    for (const category of RECIPE_CATEGORIES) {
+      const categorized = validateRecipe({ ...draft, category }, 'recipe-1');
+      expect(categorized).toMatchObject({ ok: true, value: { category } });
+      if (categorized.ok) expect(recipeToDraft(categorized.value).category).toBe(category);
+    }
+  });
+
+  it('treats an omitted or legacy category as uncategorized', () => {
+    const uncategorized = validateRecipe(draft, 'recipe-1');
+    expect(uncategorized.ok).toBe(true);
+    if (uncategorized.ok) expect('category' in uncategorized.value).toBe(false);
+    expect(isRecipeCategory(undefined)).toBe(false);
+    expect(isRecipeCategory('custom-category')).toBe(false);
+  });
+
+  it('rejects invalid category identifiers at validation time', () => {
+    const invalidDraft = { ...draft };
+    Object.defineProperty(invalidDraft, 'category', { value: 'custom-category' });
+    expect(validateRecipe(invalidDraft, 'recipe-1')).toMatchObject({
+      ok: false,
+      error: { category: 'invalid' },
     });
   });
 

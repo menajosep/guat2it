@@ -130,6 +130,96 @@ it('shows recipe thumbnails and opens the corresponding details by image or keyb
   expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
 });
 
+it('filters categorized and legacy recipes, retains the filter, and localizes category edits', async () => {
+  const user = userEvent.setup();
+  const database = `recipe-categories-${String(++counter)}`;
+  const recipes = createRecipeService(database);
+  const lentils = {
+    source: '',
+    name: 'lentils',
+    quantity: { amount: '200', unit: 'gram' as const },
+    confirmed: true,
+  };
+  const common = {
+    sourceUrl: 'https://www.directoalpaladar.com/example',
+    yield: '2',
+    ingredients: [lentils],
+    instructions: 'Cook gently.',
+    imageUrl: 'https://images.example.com/soup.jpg',
+  };
+  await recipes.save({ ...common, title: 'Lentil soup', category: 'desserts' });
+  await recipes.save({
+    ...common,
+    title: 'Green salad',
+    ingredients: [{ ...lentils, name: 'lettuce' }],
+  });
+  render(
+    <App
+      shoppingListService={createShoppingListService(database)}
+      languageService={createLanguageService()}
+      recipeService={recipes}
+      weeklyMenuService={createWeeklyMenuService(database)}
+    />,
+  );
+  await openRecipes(user);
+
+  const filter = await screen.findByRole('combobox', { name: 'Filter recipes by category' });
+  expect(filter).toHaveValue('all');
+  await user.selectOptions(filter, 'desserts');
+  expect(await screen.findByRole('button', { name: 'Lentil soup' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Green salad' })).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Lentil soup' }));
+  expect(await screen.findByText('Category: Desserts')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+  expect(screen.getByRole('combobox', { name: 'Filter recipes by category' })).toHaveValue(
+    'desserts',
+  );
+
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Filter recipes by category' }),
+    'uncategorized',
+  );
+  await user.click(await screen.findByRole('button', { name: 'Green salad' }));
+  await user.click(await screen.findByRole('button', { name: 'Edit recipe' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'soups-stews');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(screen.getByRole('combobox', { name: 'Categoría' })).toHaveValue('soups-stews');
+  await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+  expect(await screen.findByText('Categoría: Sopas y guisos')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Volver a recetas' }));
+  const spanishFilter = await screen.findByRole('combobox', {
+    name: 'Filtrar recetas por categoría',
+  });
+  expect(spanishFilter).toHaveValue('uncategorized');
+  expect(await screen.findByText('No hay recetas en esta categoría.')).toBeInTheDocument();
+
+  await user.selectOptions(spanishFilter, 'soups-stews');
+  expect(await screen.findByRole('button', { name: 'Green salad' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Green salad' }));
+  await user.click(await screen.findByRole('button', { name: 'Editar receta' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Categoría' }), '');
+  await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+  expect(await screen.findByText('Categoría: Sin categoría')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Volver a recetas' }));
+  expect(await screen.findByText('No hay recetas en esta categoría.')).toBeInTheDocument();
+  const filterAfterClear = screen.getByRole('combobox', {
+    name: 'Filtrar recetas por categoría',
+  });
+  await user.selectOptions(filterAfterClear, 'uncategorized');
+  expect(await screen.findByRole('button', { name: 'Green salad' })).toBeInTheDocument();
+  await user.selectOptions(filterAfterClear, 'beverages');
+  expect(await screen.findByText('No hay recetas en esta categoría.')).toBeInTheDocument();
+  await user.selectOptions(filterAfterClear, 'all');
+  expect(await screen.findByRole('button', { name: 'Lentil soup' })).toBeInTheDocument();
+  const saved = await recipes.list();
+  expect(saved.map(({ title, category }) => [title, category])).toEqual(
+    expect.arrayContaining([
+      ['Lentil soup', 'desserts'],
+      ['Green salad', undefined],
+    ]),
+  );
+});
+
 it('keeps failed and invalid thumbnails accessible and independent when language changes', async () => {
   const user = userEvent.setup();
   const { recipes } = renderApp();
@@ -197,6 +287,7 @@ it('retains unresolved ingredients, requires confirmation, and saves the correct
   const { recipes } = renderApp();
   await openRecipes(user);
   await startReview(user);
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'desserts');
   await user.click(screen.getByRole('button', { name: 'Save recipe' }));
   expect(screen.getByText('Review and confirm this ingredient.')).toHaveAttribute('role', 'alert');
   const ingredient = screen.getByRole('group', { name: 'Ingredients 2' });
@@ -209,7 +300,11 @@ it('retains unresolved ingredients, requires confirmation, and saves the correct
   await user.click(screen.getByRole('button', { name: 'Save recipe' }));
   expect(await screen.findByRole('button', { name: 'Lentil soup' })).toBeInTheDocument();
   expect(await recipes.list()).toMatchObject([
-    { title: 'Lentil soup', ingredients: [{ name: 'lentils', amount: 200 }, { name: 'salt' }] },
+    {
+      title: 'Lentil soup',
+      category: 'desserts',
+      ingredients: [{ name: 'lentils', amount: 200 }, { name: 'salt' }],
+    },
   ]);
 });
 
@@ -465,6 +560,7 @@ it('cancels recipe editing without changing saved values', async () => {
   await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
   await user.clear(screen.getByLabelText('Title'));
   await user.type(screen.getByLabelText('Title'), 'Not saved');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'desserts');
   await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
   expect(await screen.findByRole('heading', { name: 'Lentil soup' })).toBeInTheDocument();
@@ -505,6 +601,7 @@ it('retains the edit draft and translates storage failures when language changes
   await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
   await user.clear(screen.getByLabelText('Title'));
   await user.type(screen.getByLabelText('Title'), 'Updated soup');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'desserts');
   await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
   expect(
@@ -518,6 +615,8 @@ it('retains the edit draft and translates storage failures when language changes
   const saved = (await recipes.list())[0];
   if (!saved) throw new Error('Expected the saved recipe');
   expect(saved.title).toBe('Lentil soup');
+  expect(saved.category).toBeUndefined();
+  expect(screen.getByRole('combobox', { name: 'Categoría' })).toHaveValue('desserts');
 });
 
 it('reports when a recipe disappears while being edited without recreating it', async () => {

@@ -19,9 +19,29 @@ export interface IngredientDraft {
   readonly confirmed: boolean;
 }
 
+export const RECIPE_CATEGORIES = [
+  'breakfast-brunch',
+  'appetizers-snacks',
+  'soups-stews',
+  'salads',
+  'main-courses',
+  'side-dishes',
+  'breads-baked-goods',
+  'desserts',
+  'sauces-condiments',
+  'beverages',
+] as const;
+
+export type RecipeCategory = (typeof RECIPE_CATEGORIES)[number];
+
+export function isRecipeCategory(value: unknown): value is RecipeCategory {
+  return typeof value === 'string' && RECIPE_CATEGORIES.some((category) => category === value);
+}
+
 export interface RecipeDraft {
   readonly sourceUrl: string;
   readonly title: string;
+  readonly category?: RecipeCategory | undefined;
   readonly yield: string;
   readonly ingredients: readonly IngredientDraft[];
   readonly instructions: string;
@@ -32,6 +52,7 @@ export interface Recipe {
   readonly id: string;
   readonly sourceUrl: string;
   readonly title: string;
+  readonly category?: RecipeCategory;
   readonly yield: number;
   readonly ingredients: readonly RecipeIngredient[];
   readonly instructions: string;
@@ -42,6 +63,7 @@ export function recipeToDraft(recipe: Recipe): RecipeDraft {
   return {
     sourceUrl: recipe.sourceUrl,
     title: recipe.title,
+    ...(recipe.category ? { category: recipe.category } : {}),
     yield: String(recipe.yield),
     ingredients: recipe.ingredients.map((ingredient) => ({
       source: '',
@@ -62,6 +84,7 @@ export interface IngredientErrors {
 
 export interface RecipeErrors {
   readonly title?: 'required';
+  readonly category?: 'invalid';
   readonly yield?: 'invalid';
   readonly ingredients?: 'required';
   readonly ingredientErrors?: readonly (IngredientErrors | undefined)[];
@@ -105,6 +128,9 @@ export function validateRecipe(draft: RecipeDraft, id: string): Result<Recipe, R
   );
   const errors: RecipeErrors = {
     ...(title ? {} : { title: 'required' }),
+    ...(draft.category === undefined || isRecipeCategory(draft.category)
+      ? {}
+      : { category: 'invalid' }),
     ...(validYield && yieldNumber > 0 ? {} : { yield: 'invalid' }),
     ...(draft.ingredients.length > 0 ? {} : { ingredients: 'required' }),
     ...(ingredientErrors.some((error) => error !== undefined) ? { ingredientErrors } : {}),
@@ -122,6 +148,7 @@ export function validateRecipe(draft: RecipeDraft, id: string): Result<Recipe, R
     id,
     sourceUrl: draft.sourceUrl,
     title,
+    ...(draft.category ? { category: draft.category } : {}),
     yield: yieldNumber,
     ingredients,
     instructions,
