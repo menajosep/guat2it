@@ -28,13 +28,17 @@ For individual items, select the countable unit ("unit", "unidad" or "unitat") a
 
 Unit choices are listed alphabetically in the selected language, after the option to leave the unit empty.
 
+## Add a recipe manually
+
+Open **Recipes** and select **Add recipe manually**. Enter the title, yield, at least one ingredient and the instructions, then review and save. You can add or remove ingredients, choose a category and labels, and optionally provide an HTTPS picture URL. Manual recipes do not need a website source or picture; their details are stored locally like imported recipes.
+
 Recipes are stored locally and shown two per row as picture thumbnails with their titles. Select a thumbnail or title to open its details. Pictures are referenced by their HTTPS URLs rather than saved offline: displaying them contacts their hosts and needs network access. If a picture is unavailable, its recipe remains accessible. Native downloads accept up to 5 MiB and restrict requests and redirects to the supported Directo al Paladar hosts.
 
 To edit a saved recipe, open it from the recipe list and select **Edit recipe**. Changes are validated before saving; canceling leaves the saved recipe unchanged.
 
-Recipes can optionally be assigned one course category while reviewing an import or editing a saved recipe. Use the category filter to browse all recipes, one course, or uncategorized recipes. Recipes saved before categories were added remain available as uncategorized until edited; category choices are stored locally with each recipe.
+Recipes can optionally be assigned one course category while adding a recipe manually, reviewing an import or editing a saved recipe. Use the category filter to browse all recipes, one course, or uncategorized recipes. Recipes saved before categories were added remain available as uncategorized until edited; category choices are stored locally with each recipe.
 
-Recipes can also have multiple labels across main ingredient, cooking method, dietary and allergen, cuisine and region, and meal occasion and effort facets. Assign labels while reviewing an import or editing a saved recipe; filter by any selected value within a facet and by every selected facet, together with the course category filter. The recipe filter section starts collapsed and summarizes active filters; expand it to change the course or label filters. Label facets also start collapsed and show their selected-label count. Labels are user-assigned, not verified dietary or allergen safety claims. Existing recipes without labels remain available as unlabeled.
+Recipes can also have multiple labels across main ingredient, cooking method, dietary and allergen, cuisine and region, and meal occasion and effort facets. Assign labels while adding a recipe manually, reviewing an import or editing a saved recipe; filter by any selected value within a facet and by every selected facet, together with the course category filter. The recipe filter section starts collapsed and summarizes active filters; expand it to change the course or label filters. Label facets also start collapsed and show their selected-label count. Labels are user-assigned, not verified dietary or allergen safety claims. Existing recipes without labels remain available as unlabeled.
 
 ## Prerequisites
 

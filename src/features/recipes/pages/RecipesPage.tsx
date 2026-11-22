@@ -15,6 +15,7 @@ import {
   RECIPE_LABELS,
   RECIPE_LABEL_FACETS,
   recipeToDraft,
+  type ManualRecipeDraft,
   type Recipe,
   type RecipeCategory,
   type RecipeDraft,
@@ -30,7 +31,7 @@ import { recipeMessages } from '../messages/recipe-messages';
 import { AssignRecipe } from '../../weekly-menus/components/AssignRecipe';
 import { useActiveMenu } from '../../weekly-menus/hooks/active-menu-context';
 
-type View = 'list' | 'import' | 'review' | 'edit' | 'detail';
+type View = 'list' | 'import' | 'manual' | 'review' | 'edit' | 'detail';
 type Status = 'loading' | 'ready' | 'error';
 type RecipeFilter = 'all' | 'uncategorized' | RecipeCategory;
 
@@ -104,12 +105,35 @@ export function RecipesPage() {
     }
   };
 
+  const startManualRecipe = () => {
+    const emptyDraft: ManualRecipeDraft = {
+      title: '',
+      yield: '',
+      ingredients: [
+        {
+          source: '',
+          name: '',
+          quantity: { amount: '', unit: undefined },
+          confirmed: true,
+        },
+      ],
+      instructions: '',
+      imageUrl: '',
+      labels: [],
+    };
+    setDraft(emptyDraft);
+    setErrors(null);
+    setSaveError(null);
+    setView('manual');
+  };
+
   const save = async () => {
     if (!draft || saving) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const result = await service.save(draft);
+      const result =
+        draft.sourceUrl === undefined ? await service.saveManual(draft) : await service.save(draft);
       if (!result.ok) {
         if (result.error === 'invalid-url') {
           setImportError('invalid-url');
@@ -247,6 +271,9 @@ export function RecipesPage() {
                   >
                     {messages.import}
                   </button>
+                  <button type="button" onClick={startManualRecipe}>
+                    {messages.addManually}
+                  </button>
                   {recipes.length === 0 ? (
                     <p>{messages.empty}</p>
                   ) : (
@@ -345,8 +372,8 @@ export function RecipesPage() {
                               >
                                 <span id={`recipe-image-${recipe.id}`}>
                                   <RecipeImage
-                                    key={recipe.imageUrl}
-                                    url={recipe.imageUrl}
+                                    key={recipe.imageUrl ?? ''}
+                                    url={recipe.imageUrl ?? ''}
                                     description=""
                                     unavailable={messages.imageUnavailable}
                                     thumbnail
@@ -417,8 +444,8 @@ export function RecipesPage() {
               <h1>{selected.title}</h1>
               <AssignRecipe key={`${selected.id}-${activeMenu?.id ?? ''}`} recipeId={selected.id} />
               <RecipeImage
-                key={selected.imageUrl}
-                url={selected.imageUrl}
+                key={selected.imageUrl ?? ''}
+                url={selected.imageUrl ?? ''}
                 description={selected.title}
                 unavailable={messages.imageUnavailable}
               />
@@ -513,7 +540,7 @@ export function RecipesPage() {
               </button>
             </form>
           )}
-          {view === 'review' && draft && (
+          {(view === 'review' || view === 'manual') && draft && (
             <>
               {saveError && (
                 <p role="alert">
@@ -526,6 +553,18 @@ export function RecipesPage() {
                 messages={messages}
                 saving={saving}
                 onChange={setDraft}
+                {...(view === 'manual'
+                  ? {
+                      onRemoveIngredient: (index: number) => {
+                        setDraft({
+                          ...draft,
+                          ingredients: draft.ingredients.filter(
+                            (_ingredient, position) => position !== index,
+                          ),
+                        });
+                      },
+                    }
+                  : {})}
                 onSave={() => void save()}
                 onCancel={() => {
                   setDraft(null);

@@ -2,6 +2,7 @@ import { fail, ok } from '../../../shared/types/result';
 import { extractRecipe } from '../infrastructure/extract-recipe';
 import { MAX_SOURCE_BYTES, RecipeService, isSupportedSourceUrl } from './recipe-service';
 import type { RecipeExtractor, RecipeStore } from './recipe-ports';
+import type { ManualRecipeDraft } from '../domain/recipe';
 
 const sourceUrl = 'https://www.directoalpaladar.com/example';
 const extract: RecipeExtractor = () =>
@@ -139,6 +140,54 @@ describe('RecipeService', () => {
     expect(save).toHaveBeenCalledOnce();
   });
 
+  it('saves manual recipes without a source or picture and rejects invalid manual drafts', async () => {
+    const { service: instance, store } = service();
+    const save = vi.spyOn(store, 'save');
+    const manualDraft: ManualRecipeDraft = {
+      title: 'Soup',
+      yield: '4',
+      ingredients: [
+        {
+          source: '',
+          name: 'lentils',
+          quantity: { amount: '200', unit: 'gram' },
+          confirmed: true,
+        },
+      ],
+      instructions: 'Cook',
+      imageUrl: '',
+    };
+
+    const saved = await instance.saveManual(manualDraft);
+    expect(saved).toEqual({
+      ok: true,
+      value: {
+        id: 'id',
+        title: 'Soup',
+        yield: 4,
+        ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }],
+        instructions: 'Cook',
+      },
+    });
+    expect(save).toHaveBeenCalledOnce();
+
+    const rejected = await instance.saveManual({ ...manualDraft, ingredients: [] });
+    expect(rejected).toMatchObject({ ok: false, error: { ingredients: 'required' } });
+    expect(save).toHaveBeenCalledOnce();
+  });
+
+  it('keeps supported-source validation on website recipe saves', async () => {
+    const { service: instance, store } = service();
+    const save = vi.spyOn(store, 'save');
+    const imported = instance.import(sourceUrl, 'source');
+    if (!imported.ok) throw new Error('Expected an imported draft');
+
+    expect(
+      await instance.save({ ...imported.value, sourceUrl: 'https://example.com/recipe' }),
+    ).toEqual({ ok: false, error: 'invalid-url' });
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('saves and updates selected labels without changing the source URL', async () => {
     const { service: instance, store } = service();
     const imported = instance.import(sourceUrl, 'source');
@@ -241,6 +290,81 @@ describe('RecipeService', () => {
       imageUrl: existing.imageUrl,
     });
     expect(update).toHaveBeenCalledOnce();
+  });
+
+  it('keeps manual recipes source-less during updates and allows an omitted picture', async () => {
+    const existing = {
+      id: 'manual-id',
+      title: 'Soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' as const }],
+      instructions: 'Cook',
+    };
+    const { service: instance, store } = service();
+    vi.spyOn(store, 'get').mockResolvedValue(existing);
+    const update = vi.spyOn(store, 'update');
+
+    const result = await instance.update('manual-id', {
+      sourceUrl,
+      title: 'Updated soup',
+      yield: '2',
+      ingredients: [
+        {
+          source: '',
+          name: 'lentils',
+          quantity: { amount: '100', unit: 'gram' },
+          confirmed: true,
+        },
+      ],
+      instructions: 'Simmer',
+      imageUrl: '',
+    });
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        ...existing,
+        title: 'Updated soup',
+        yield: 2,
+        ingredients: [{ name: 'lentils', amount: 100, unit: 'gram' }],
+        instructions: 'Simmer',
+      },
+    });
+    expect(update).toHaveBeenCalledWith(result.ok && result.value);
+  });
+
+  it('continues requiring pictures when updating website recipes', async () => {
+    const existing = {
+      id: 'recipe-id',
+      sourceUrl,
+      title: 'Soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' as const }],
+      instructions: 'Cook',
+      imageUrl: 'https://example.com/image.jpg',
+    };
+    const { service: instance, store } = service();
+    vi.spyOn(store, 'get').mockResolvedValue(existing);
+    const update = vi.spyOn(store, 'update');
+
+    const result = await instance.update('recipe-id', {
+      sourceUrl,
+      title: 'Updated soup',
+      yield: '2',
+      ingredients: [
+        {
+          source: '',
+          name: 'lentils',
+          quantity: { amount: '100', unit: 'gram' },
+          confirmed: true,
+        },
+      ],
+      instructions: 'Simmer',
+      imageUrl: '',
+    });
+
+    expect(result).toMatchObject({ ok: false, error: { imageUrl: 'invalid' } });
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('reports missing recipes before and during update', async () => {

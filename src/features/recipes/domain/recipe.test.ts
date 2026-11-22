@@ -5,6 +5,7 @@ import {
   RECIPE_CATEGORIES,
   validateIngredient,
   validateRecipe,
+  type ManualRecipeDraft,
   type Recipe,
   type RecipeDraft,
 } from './recipe';
@@ -74,6 +75,56 @@ describe('recipe validation', () => {
         imageUrl: draft.imageUrl,
       },
     });
+  });
+
+  it('creates manual recipes without a source or picture and converts them back to drafts', () => {
+    const manualDraft = {
+      title: draft.title,
+      yield: draft.yield,
+      ingredients: draft.ingredients,
+      instructions: draft.instructions,
+      imageUrl: '',
+    } satisfies ManualRecipeDraft;
+
+    const validated = validateRecipe(manualDraft, 'manual-1');
+    expect(validated).toEqual({
+      ok: true,
+      value: {
+        id: 'manual-1',
+        title: 'Soup',
+        yield: 4,
+        ingredients: [{ name: 'lentejas', amount: 200, unit: 'gram' }],
+        instructions: 'Cook.',
+      },
+    });
+    if (!validated.ok) throw new Error('Expected a valid manual recipe');
+    expect(recipeToDraft(validated.value)).toMatchObject({
+      title: 'Soup',
+      imageUrl: '',
+      ingredients: [{ name: 'lentejas' }],
+    });
+    expect('sourceUrl' in recipeToDraft(validated.value)).toBe(false);
+  });
+
+  it('allows a valid HTTPS picture but rejects invalid supplied manual pictures', () => {
+    const manualDraft = {
+      title: draft.title,
+      yield: draft.yield,
+      ingredients: draft.ingredients,
+      instructions: draft.instructions,
+      imageUrl: '',
+    } satisfies ManualRecipeDraft;
+    const withPicture = validateRecipe(
+      { ...manualDraft, imageUrl: 'https://example.com/image.jpg' },
+      'manual-1',
+    );
+    expect(withPicture).toMatchObject({
+      ok: true,
+      value: { imageUrl: 'https://example.com/image.jpg' },
+    });
+    expect(
+      validateRecipe({ ...manualDraft, imageUrl: 'http://example.com/image.jpg' }, 'id'),
+    ).toMatchObject({ ok: false, error: { imageUrl: 'invalid' } });
   });
 
   it('accepts each supported category and retains it when editing', () => {
@@ -171,6 +222,13 @@ describe('recipe validation', () => {
         instructions: 'required',
         imageUrl: 'invalid',
       },
+    });
+  });
+
+  it('still requires a valid picture for website recipes', () => {
+    expect(validateRecipe({ ...draft, imageUrl: '' }, 'id')).toMatchObject({
+      ok: false,
+      error: { imageUrl: 'invalid' },
     });
   });
 

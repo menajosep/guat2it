@@ -349,3 +349,45 @@ test('labels, filters, edits, and reloads recipes including uncategorized recipe
   await expect(page.getByRole('button', { name: 'Green salad' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Lentil soup' })).toHaveCount(0);
 });
+
+test('creates, assigns, reloads, and edits a manual recipe without a picture', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Weekly menus', { exact: true }).click();
+  await page.getByLabel('Start date').fill('2026-11-23');
+  await page.getByLabel('Menu name').fill('Family meals');
+  await page.getByLabel('Servings', { exact: true }).fill('4');
+  await page.getByRole('button', { name: 'Create weekly menu' }).click();
+  const menu = page.getByRole('listitem').filter({ hasText: 'Family meals' });
+  await expect(menu).toBeVisible();
+  await menu.getByRole('button', { name: 'Select menu' }).click();
+
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+  await page.getByRole('button', { name: 'Add recipe manually' }).click();
+  await page.getByLabel('Title').fill('Family lentil soup');
+  await page.getByLabel('Yield').fill('4');
+  await page.getByLabel('Ingredient name').fill('lentils');
+  await page.getByLabel('Amount for 1').fill('200');
+  await page.getByLabel('Unit for 1').selectOption('gram');
+  await page.getByLabel('Instructions').fill('Cook gently.');
+  await expect(page.getByLabel('Picture URL (optional)')).toBeVisible();
+  await page.getByRole('button', { name: 'Save recipe' }).click();
+  await page.getByRole('button', { name: 'Family lentil soup' }).click();
+  await expect(page.getByRole('img', { name: 'Picture unavailable' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add to weekly menu' }).click();
+  await page.getByRole('button', { name: 'Add recipe' }).click();
+  const assignment = page.getByRole('status');
+  await expect(assignment).toContainText('Family lentil soup');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.locator('ion-menu').getByText('Recipes', { exact: true }).click();
+  await page.getByRole('button', { name: 'Family lentil soup' }).click();
+  await page.getByRole('button', { name: 'Edit recipe' }).click();
+  await page.getByLabel('Title').fill('Updated family soup');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('heading', { name: 'Updated family soup' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Picture unavailable' })).toBeVisible();
+});
