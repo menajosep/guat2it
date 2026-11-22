@@ -16,6 +16,8 @@ describe.each(LANGUAGES)('%s recipe messages', (language) => {
   });
 
   it('provides localized edit controls and update errors', () => {
+    expect(messages.addManually.trim()).not.toBe('');
+    expect(messages.imageUrlOptional.trim()).not.toBe('');
     expect(messages.edit.trim()).not.toBe('');
     expect(messages.update.trim()).not.toBe('');
     expect(messages.removeIngredient.trim()).not.toBe('');

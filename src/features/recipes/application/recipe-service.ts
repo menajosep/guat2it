@@ -1,6 +1,13 @@
 import { fail, ok, type Result } from '../../../shared/types/result';
 import { parseIngredient } from '../domain/parse-ingredient';
-import { validateRecipe, type Recipe, type RecipeDraft, type RecipeErrors } from '../domain/recipe';
+import {
+  validateRecipe,
+  type ManualRecipeDraft,
+  type Recipe,
+  type RecipeDraft,
+  type RecipeErrors,
+  type WebsiteRecipeDraft,
+} from '../domain/recipe';
 import type {
   RecipeDownloadError,
   RecipeExtractor,
@@ -38,7 +45,7 @@ export class RecipeService {
     return this.sourceReader !== undefined;
   }
 
-  async importFromUrl(sourceUrl: string): Promise<Result<RecipeDraft, ImportError>> {
+  async importFromUrl(sourceUrl: string): Promise<Result<WebsiteRecipeDraft, ImportError>> {
     const url = sourceUrl.trim();
     if (!isSupportedSourceUrl(url)) return fail('invalid-url');
     if (!this.sourceReader) throw new Error('Native recipe downloading is not available.');
@@ -47,7 +54,7 @@ export class RecipeService {
     return this.import(url, source.value);
   }
 
-  import(sourceUrl: string, source: string): Result<RecipeDraft, ImportError> {
+  import(sourceUrl: string, source: string): Result<WebsiteRecipeDraft, ImportError> {
     const url = sourceUrl.trim();
     if (!isSupportedSourceUrl(url)) return fail('invalid-url');
     if (
@@ -81,7 +88,12 @@ export class RecipeService {
   ): Promise<Result<Recipe, RecipeErrors | 'not-found'>> {
     const existing = await this.store.get(id);
     if (!existing) return fail('not-found');
-    const validated = validateRecipe({ ...draft, sourceUrl: existing.sourceUrl }, id);
+    const validated = validateRecipe(
+      existing.sourceUrl === undefined
+        ? asManualDraft(draft)
+        : { ...draft, sourceUrl: existing.sourceUrl },
+      id,
+    );
     if (!validated.ok) return validated;
     const updated = await this.store.update(validated.value);
     return updated ? ok(validated.value) : fail('not-found');
@@ -91,11 +103,31 @@ export class RecipeService {
     return this.store.get(id);
   }
 
-  async save(draft: RecipeDraft): Promise<Result<Recipe, RecipeErrors | 'invalid-url'>> {
+  async save(draft: WebsiteRecipeDraft): Promise<Result<Recipe, RecipeErrors | 'invalid-url'>> {
     if (!isSupportedSourceUrl(draft.sourceUrl)) return fail('invalid-url');
+    return this.saveValidated(draft);
+  }
+
+  saveManual(draft: ManualRecipeDraft): Promise<Result<Recipe, RecipeErrors>> {
+    return this.saveValidated(draft);
+  }
+
+  private async saveValidated(draft: RecipeDraft): Promise<Result<Recipe, RecipeErrors>> {
     const recipe = validateRecipe(draft, this.generateId());
     if (!recipe.ok) return recipe;
     await this.store.save(recipe.value);
     return recipe;
   }
+}
+
+function asManualDraft(draft: RecipeDraft): ManualRecipeDraft {
+  return {
+    title: draft.title,
+    ...(draft.category === undefined ? {} : { category: draft.category }),
+    ...(draft.labels === undefined ? {} : { labels: draft.labels }),
+    yield: draft.yield,
+    ingredients: draft.ingredients,
+    instructions: draft.instructions,
+    imageUrl: draft.imageUrl,
+  };
 }

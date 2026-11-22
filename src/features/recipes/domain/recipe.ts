@@ -47,8 +47,7 @@ export function isRecipeCategory(value: unknown): value is RecipeCategory {
   return typeof value === 'string' && RECIPE_CATEGORIES.some((category) => category === value);
 }
 
-export interface RecipeDraft {
-  readonly sourceUrl: string;
+interface RecipeDraftFields {
   readonly title: string;
   readonly category?: RecipeCategory | undefined;
   readonly labels?: readonly RecipeLabel[] | undefined;
@@ -58,21 +57,31 @@ export interface RecipeDraft {
   readonly imageUrl: string;
 }
 
+export interface WebsiteRecipeDraft extends RecipeDraftFields {
+  readonly sourceUrl: string;
+}
+
+export interface ManualRecipeDraft extends RecipeDraftFields {
+  readonly sourceUrl?: never;
+}
+
+export type RecipeDraft = WebsiteRecipeDraft | ManualRecipeDraft;
+
 export interface Recipe {
   readonly id: string;
-  readonly sourceUrl: string;
+  readonly sourceUrl?: string;
   readonly title: string;
   readonly category?: RecipeCategory;
   readonly labels?: readonly RecipeLabel[];
   readonly yield: number;
   readonly ingredients: readonly RecipeIngredient[];
   readonly instructions: string;
-  readonly imageUrl: string;
+  readonly imageUrl?: string;
 }
 
 export function recipeToDraft(recipe: Recipe): RecipeDraft {
   return {
-    sourceUrl: recipe.sourceUrl,
+    ...(recipe.sourceUrl ? { sourceUrl: recipe.sourceUrl } : {}),
     title: recipe.title,
     ...(recipe.category ? { category: recipe.category } : {}),
     labels: recipe.labels ?? [],
@@ -84,7 +93,7 @@ export function recipeToDraft(recipe: Recipe): RecipeDraft {
       confirmed: true,
     })),
     instructions: recipe.instructions,
-    imageUrl: recipe.imageUrl,
+    imageUrl: recipe.imageUrl ?? '',
   };
 }
 
@@ -139,6 +148,9 @@ export function validateRecipe(draft: RecipeDraft, id: string): Result<Recipe, R
   const ingredientErrors = ingredientResults.map((result) =>
     result.ok ? undefined : result.error,
   );
+  const imageUrl = draft.imageUrl.trim();
+  const validImageUrl =
+    draft.sourceUrl === undefined ? imageUrl === '' || isHttpsUrl(imageUrl) : isHttpsUrl(imageUrl);
   const errors: RecipeErrors = {
     ...(title ? {} : { title: 'required' }),
     ...(draft.category === undefined || isRecipeCategory(draft.category)
@@ -149,7 +161,7 @@ export function validateRecipe(draft: RecipeDraft, id: string): Result<Recipe, R
     ...(draft.ingredients.length > 0 ? {} : { ingredients: 'required' }),
     ...(ingredientErrors.some((error) => error !== undefined) ? { ingredientErrors } : {}),
     ...(instructions ? {} : { instructions: 'required' }),
-    ...(isHttpsUrl(draft.imageUrl.trim()) ? {} : { imageUrl: 'invalid' }),
+    ...(validImageUrl ? {} : { imageUrl: 'invalid' }),
   };
   if (Object.keys(errors).length > 0) return fail(errors);
 
@@ -160,13 +172,13 @@ export function validateRecipe(draft: RecipeDraft, id: string): Result<Recipe, R
   }
   return ok({
     id,
-    sourceUrl: draft.sourceUrl,
+    ...(draft.sourceUrl ? { sourceUrl: draft.sourceUrl } : {}),
     title,
     ...(draft.category ? { category: draft.category } : {}),
     ...(draft.labels?.length ? { labels: draft.labels } : {}),
     yield: yieldNumber,
     ingredients,
     instructions,
-    imageUrl: draft.imageUrl.trim(),
+    ...(imageUrl ? { imageUrl } : {}),
   });
 }

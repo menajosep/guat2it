@@ -140,7 +140,7 @@ export function RecipeReview({
           return (
             <fieldset key={id}>
               <legend>{`${messages.ingredients} ${String(index + 1)}`}</legend>
-              {!editing && (
+              {!editing && draft.sourceUrl !== undefined && (
                 <p>
                   {messages.original}: {ingredient.source}
                 </p>
@@ -165,7 +165,7 @@ export function RecipeReview({
                   updateIngredient(index, { ...ingredient, quantity });
                 }}
               />
-              {!editing && (
+              {!editing && draft.sourceUrl !== undefined && (
                 <>
                   <label>
                     <input
@@ -180,7 +180,7 @@ export function RecipeReview({
                   {itemErrors?.unconfirmed && <p role="alert">{messages.confirmRequired}</p>}
                 </>
               )}
-              {editing && onRemoveIngredient && (
+              {onRemoveIngredient && (
                 <button
                   type="button"
                   disabled={saving}
@@ -225,7 +225,9 @@ export function RecipeReview({
       />
       {errors?.instructions && <p role="alert">{messages.required}</p>}
 
-      <label htmlFor="recipe-image">{messages.imageUrl}</label>
+      <label htmlFor="recipe-image">
+        {draft.sourceUrl === undefined ? messages.imageUrlOptional : messages.imageUrl}
+      </label>
       <input
         id="recipe-image"
         value={draft.imageUrl}

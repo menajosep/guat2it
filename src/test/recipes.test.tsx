@@ -84,6 +84,12 @@ async function startReview(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByLabelText('Title');
 }
 
+async function startManualRecipe(user: ReturnType<typeof userEvent.setup>) {
+  await screen.findByText('No recipes yet.');
+  await user.click(screen.getByRole('button', { name: 'Add recipe manually' }));
+  await screen.findByLabelText('Title');
+}
+
 async function expandFilterSection(user: ReturnType<typeof userEvent.setup>, name: string) {
   const summary = await screen.findByText(
     (content, element) => element?.tagName === 'SUMMARY' && content.startsWith(name),
@@ -803,5 +809,104 @@ it('reports when a recipe disappears while being edited without recreating it', 
     'alert',
   );
   expect(screen.getByLabelText('Title')).toHaveValue('Updated soup');
+  expect(await recipes.list()).toEqual([]);
+});
+
+it('creates and edits a manual recipe without a source or picture', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  await openRecipes(user);
+  await startManualRecipe(user);
+
+  expect(screen.queryByText(/Original ingredient:/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('checkbox', { name: 'I have reviewed this ingredient' })).toBeNull();
+  await user.click(screen.getByRole('button', { name: 'Add ingredient' }));
+  const extraIngredient = screen.getByRole('group', { name: 'Ingredients 2' });
+  await user.type(within(extraIngredient).getByLabelText('Ingredient name'), 'unused');
+  await user.click(within(extraIngredient).getByRole('button', { name: 'Remove ingredient' }));
+
+  await user.type(screen.getByLabelText('Title'), 'Family lentil soup');
+  await user.type(screen.getByLabelText('Yield'), '4');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Category' }), 'soups-stews');
+  const ingredient = screen.getByRole('group', { name: 'Ingredients 1' });
+  await user.type(within(ingredient).getByLabelText('Ingredient name'), 'lentils');
+  await user.type(within(ingredient).getByLabelText('Amount for 1'), '200');
+  await user.selectOptions(within(ingredient).getByLabelText('Unit for 1'), 'gram');
+  await user.type(screen.getByLabelText('Instructions'), 'Cook gently.');
+  expect(screen.getByLabelText('Picture URL (optional)')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+
+  const saved = await recipes.list();
+  expect(saved).toHaveLength(1);
+  expect(saved[0]).toMatchObject({
+    title: 'Family lentil soup',
+    category: 'soups-stews',
+    yield: 4,
+    ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }],
+    instructions: 'Cook gently.',
+  });
+  expect(saved[0] && 'sourceUrl' in saved[0]).toBe(false);
+  expect(saved[0] && 'imageUrl' in saved[0]).toBe(false);
+
+  await user.click(await screen.findByRole('button', { name: 'Family lentil soup' }));
+  expect(await screen.findByRole('img', { name: 'Picture unavailable' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Edit recipe' }));
+  expect(screen.getByLabelText('Picture URL (optional)')).toHaveValue('');
+  await user.clear(screen.getByLabelText('Title'));
+  await user.type(screen.getByLabelText('Title'), 'Updated family soup');
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+  expect(await screen.findByRole('heading', { name: 'Updated family soup' })).toBeInTheDocument();
+  const updated = (await recipes.list())[0];
+  expect(updated).toMatchObject({ title: 'Updated family soup' });
+  expect(updated && 'sourceUrl' in updated).toBe(false);
+  expect(updated && 'imageUrl' in updated).toBe(false);
+});
+
+it('cancels manual entry and retains invalid drafts with localized validation', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  await openRecipes(user);
+  await startManualRecipe(user);
+  await user.type(screen.getByLabelText('Title'), 'Unfinished soup');
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+  expect(await screen.findByText('Enter a positive yield number.')).toHaveAttribute(
+    'role',
+    'alert',
+  );
+  expect(screen.getByLabelText('Title')).toHaveValue('Unfinished soup');
+  expect(await recipes.list()).toEqual([]);
+
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'es');
+  expect(screen.getByLabelText('Título')).toHaveValue('Unfinished soup');
+  expect(screen.getByText('Introduce un número positivo de raciones.')).toHaveAttribute(
+    'role',
+    'alert',
+  );
+  await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+  expect(await recipes.list()).toEqual([]);
+});
+
+it('retains a manual recipe draft after local storage fails to save', async () => {
+  const user = userEvent.setup();
+  const { recipes } = renderApp();
+  await openRecipes(user);
+  await startManualRecipe(user);
+  await user.type(screen.getByLabelText('Title'), 'Retry soup');
+  await user.type(screen.getByLabelText('Yield'), '2');
+  await user.type(
+    within(screen.getByRole('group', { name: 'Ingredients 1' })).getByLabelText('Ingredient name'),
+    'lentils',
+  );
+  await user.type(screen.getByLabelText('Instructions'), 'Simmer.');
+  vi.spyOn(recipes, 'saveManual').mockRejectedValue(
+    new PersistenceError('Storage failed', { action: 'save-recipe' }),
+  );
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  await user.click(screen.getByRole('button', { name: 'Save recipe' }));
+
+  expect(
+    await screen.findByText('Could not save the recipe because local storage failed.'),
+  ).toHaveAttribute('role', 'alert');
+  expect(screen.getByLabelText('Title')).toHaveValue('Retry soup');
   expect(await recipes.list()).toEqual([]);
 });

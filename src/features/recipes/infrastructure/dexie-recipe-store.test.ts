@@ -46,6 +46,27 @@ describe('DexieRecipeStore', () => {
     reopened.close();
   });
 
+  it('persists a manual recipe without a source or picture without changing the schema', async () => {
+    const name = uniqueName();
+    const db = new AppDatabase(name);
+    const store = new DexieRecipeStore(db);
+    const manualRecipe: Recipe = {
+      id: 'manual-1',
+      title: 'Lentil soup',
+      yield: 4,
+      ingredients: [{ name: 'lentils', amount: 200, unit: 'gram' }],
+      instructions: 'Cook gently.',
+    };
+
+    await store.save(manualRecipe);
+    expect(db.verno).toBe(6);
+    db.close();
+
+    const reopened = new AppDatabase(name);
+    expect(await new DexieRecipeStore(reopened).get(manualRecipe.id)).toEqual(manualRecipe);
+    reopened.close();
+  });
+
   it('reads legacy recipes and menu assignments without rewriting existing records', async () => {
     const name = uniqueName();
     const old = new Dexie(name);

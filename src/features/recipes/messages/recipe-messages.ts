@@ -6,6 +6,7 @@ export interface RecipeMessages {
   readonly empty: string;
   readonly loading: string;
   readonly import: string;
+  readonly addManually: string;
   readonly sourceUrl: string;
   readonly sourceHtml: string;
   readonly sourceHelp: string;
@@ -49,6 +50,7 @@ export interface RecipeMessages {
   readonly addIngredient: string;
   readonly instructions: string;
   readonly imageUrl: string;
+  readonly imageUrlOptional: string;
   readonly imageUnavailable: string;
   readonly original: string;
   readonly ingredientName: string;
@@ -81,6 +83,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     empty: 'No recipes yet.',
     loading: 'Loading recipes',
     import: 'Import recipe',
+    addManually: 'Add recipe manually',
     sourceUrl: 'Recipe URL',
     sourceHtml: 'Page source',
     sourceHelp:
@@ -187,6 +190,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     addIngredient: 'Add ingredient',
     instructions: 'Instructions',
     imageUrl: 'Picture URL',
+    imageUrlOptional: 'Picture URL (optional)',
     imageUnavailable: 'Picture unavailable',
     original: 'Original ingredient',
     ingredientName: 'Ingredient name',
@@ -217,6 +221,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     empty: 'Todavía no hay recetas.',
     loading: 'Cargando recetas',
     import: 'Importar receta',
+    addManually: 'Crear receta manualmente',
     sourceUrl: 'URL de la receta',
     sourceHtml: 'Código fuente de la página',
     sourceHelp:
@@ -325,6 +330,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     addIngredient: 'Añadir ingrediente',
     instructions: 'Instrucciones',
     imageUrl: 'URL de la imagen',
+    imageUrlOptional: 'URL de la imagen (opcional)',
     imageUnavailable: 'Imagen no disponible',
     original: 'Ingrediente original',
     ingredientName: 'Nombre del ingrediente',
@@ -356,6 +362,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     empty: 'Encara no hi ha receptes.',
     loading: 'Carregant receptes',
     import: 'Importa una recepta',
+    addManually: 'Afegeix una recepta manualment',
     sourceUrl: 'URL de la recepta',
     sourceHtml: 'Codi font de la pàgina',
     sourceHelp:
@@ -464,6 +471,7 @@ export const recipeMessages: Record<Language, RecipeMessages> = {
     addIngredient: 'Afegeix un ingredient',
     instructions: 'Instruccions',
     imageUrl: 'URL de la imatge',
+    imageUrlOptional: 'URL de la imatge (opcional)',
     imageUnavailable: 'Imatge no disponible',
     original: 'Ingredient original',
     ingredientName: "Nom de l'ingredient",
